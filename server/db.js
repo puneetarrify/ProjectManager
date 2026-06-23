@@ -16,8 +16,19 @@ function initDb() {
         description TEXT DEFAULT '',
         status TEXT DEFAULT 'Active' CHECK(status IN ('Active', 'On Hold', 'Completed', 'Archived')),
         created_at TEXT DEFAULT (datetime('now', 'localtime')),
-        updated_at TEXT DEFAULT (datetime('now', 'localtime'))
+        updated_at TEXT DEFAULT (datetime('now', 'localtime')),
+        last_visited_at TEXT DEFAULT (datetime('now', 'localtime'))
     );
+  `);
+  
+  try {
+      db.exec("ALTER TABLE projects ADD COLUMN last_visited_at TEXT;");
+      db.exec("UPDATE projects SET last_visited_at = updated_at WHERE last_visited_at IS NULL;");
+  } catch (err) {
+      // Ignore column already exists error
+  }
+  
+  db.exec(`
 
     CREATE TABLE IF NOT EXISTS sfdc_connections (
         id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -10,7 +10,7 @@ router.get('/', (req, res) => {
             (SELECT count(*) FROM local_paths WHERE project_id = p.id) as path_count,
             (SELECT count(*) FROM tasks WHERE project_id = p.id AND status NOT IN ('Done', 'Blocked')) as task_count
         FROM projects p
-        ORDER BY p.updated_at DESC
+        ORDER BY p.last_visited_at DESC
     `);
     res.json(stmt.all());
 });
@@ -18,6 +18,9 @@ router.get('/', (req, res) => {
 // GET a single project with all relations
 router.get('/:id', (req, res) => {
     const projectId = req.params.id;
+    
+    // Update last_visited_at
+    db.prepare(`UPDATE projects SET last_visited_at = datetime('now', 'localtime') WHERE id = ?`).run(projectId);
     
     const projectStmt = db.prepare('SELECT * FROM projects WHERE id = ?');
     const project = projectStmt.get(projectId);

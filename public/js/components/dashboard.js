@@ -32,13 +32,20 @@ class Dashboard {
             let html = '<div class="projects-grid">';
             
             projects.forEach(p => {
+                const visitedDate = p.last_visited_at ? new Date(p.last_visited_at.replace(' ', 'T')).toLocaleString(undefined, {
+                    month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                }) : 'Never visited';
+                
                 html += `
                     <div class="project-card glass-panel" onclick="app.navigateToProject(${p.id})">
                         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                             <h3>${p.name}</h3>
                             <span class="badge ${this.getBadgeClass(p.status)}">${p.status}</span>
                         </div>
-                        <p>${p.description || 'No description provided.'}</p>
+                        <p style="margin-bottom: 8px;">${p.description || 'No description provided.'}</p>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px;">
+                            <i class='bx bx-time'></i> Last visited: ${visitedDate}
+                        </p>
                         
                         <div class="stats-row">
                             <div class="stat-item" title="Salesforce Connections">

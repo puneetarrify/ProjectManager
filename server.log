@@ -5,8 +5,10 @@ CREATE TABLE IF NOT EXISTS projects (
         description TEXT DEFAULT '',
         status TEXT DEFAULT 'Active' CHECK(status IN ('Active', 'On Hold', 'Completed', 'Archived')),
         created_at TEXT DEFAULT (datetime('now', 'localtime')),
-        updated_at TEXT DEFAULT (datetime('now', 'localtime'))
+        updated_at TEXT DEFAULT (datetime('now', 'localtime')),
+        last_visited_at TEXT DEFAULT (datetime('now', 'localtime'))
     );
+ALTER TABLE projects ADD COLUMN last_visited_at TEXT DEFAULT (datetime('now', 'localtime'));
 CREATE TABLE IF NOT EXISTS sfdc_connections (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         project_id INTEGER NOT NULL,
@@ -38,3 +40,36 @@ CREATE TABLE IF NOT EXISTS tasks (
     );
 Database initialized successfully.
 Server is running on http://localhost:3000
+SqliteError: no such column: p.last_visited_at
+    at Database.prepare (/home/kritik/CLI/ProjectManager/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+    at /home/kritik/CLI/ProjectManager/server/routes/projects.js:7:21
+    at Layer.handleRequest (/home/kritik/CLI/ProjectManager/node_modules/router/lib/layer.js:152:17)
+    at next (/home/kritik/CLI/ProjectManager/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/home/kritik/CLI/ProjectManager/node_modules/router/lib/route.js:117:3)
+    at handle (/home/kritik/CLI/ProjectManager/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/home/kritik/CLI/ProjectManager/node_modules/router/lib/layer.js:152:17)
+    at /home/kritik/CLI/ProjectManager/node_modules/router/index.js:295:15
+    at processParams (/home/kritik/CLI/ProjectManager/node_modules/router/index.js:582:12)
+    at next (/home/kritik/CLI/ProjectManager/node_modules/router/index.js:291:5)
+SqliteError: no such column: p.last_visited_at
+    at Database.prepare (/home/kritik/CLI/ProjectManager/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+    at /home/kritik/CLI/ProjectManager/server/routes/projects.js:7:21
+    at Layer.handleRequest (/home/kritik/CLI/ProjectManager/node_modules/router/lib/layer.js:152:17)
+    at next (/home/kritik/CLI/ProjectManager/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/home/kritik/CLI/ProjectManager/node_modules/router/lib/route.js:117:3)
+    at handle (/home/kritik/CLI/ProjectManager/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/home/kritik/CLI/ProjectManager/node_modules/router/lib/layer.js:152:17)
+    at /home/kritik/CLI/ProjectManager/node_modules/router/index.js:295:15
+    at processParams (/home/kritik/CLI/ProjectManager/node_modules/router/index.js:582:12)
+    at next (/home/kritik/CLI/ProjectManager/node_modules/router/index.js:291:5)
+SqliteError: no such column: p.last_visited_at
+    at Database.prepare (/home/kritik/CLI/ProjectManager/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+    at /home/kritik/CLI/ProjectManager/server/routes/projects.js:7:21
+    at Layer.handleRequest (/home/kritik/CLI/ProjectManager/node_modules/router/lib/layer.js:152:17)
+    at next (/home/kritik/CLI/ProjectManager/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/home/kritik/CLI/ProjectManager/node_modules/router/lib/route.js:117:3)
+    at handle (/home/kritik/CLI/ProjectManager/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/home/kritik/CLI/ProjectManager/node_modules/router/lib/layer.js:152:17)
+    at /home/kritik/CLI/ProjectManager/node_modules/router/index.js:295:15
+    at processParams (/home/kritik/CLI/ProjectManager/node_modules/router/index.js:582:12)
+    at next (/home/kritik/CLI/ProjectManager/node_modules/router/index.js:291:5)
