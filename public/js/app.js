@@ -15,6 +15,11 @@ class App {
             this.navigateCli();
         });
 
+        document.getElementById('nav-git').addEventListener('click', (e) => {
+            e.preventDefault();
+            this.navigateGit();
+        });
+
         document.getElementById('btn-new-project').addEventListener('click', () => {
             modals.showProjectForm(null, async (data) => {
                 try {
@@ -33,6 +38,7 @@ class App {
         // Toggle UI states
         document.getElementById('nav-dashboard').classList.add('active');
         document.getElementById('nav-cli').classList.remove('active');
+        document.getElementById('nav-git').classList.remove('active');
         document.getElementById('btn-new-project').style.display = 'inline-flex';
         dashboard.render();
     }
@@ -40,13 +46,23 @@ class App {
     navigateCli() {
         document.getElementById('nav-cli').classList.add('active');
         document.getElementById('nav-dashboard').classList.remove('active');
+        document.getElementById('nav-git').classList.remove('active');
         document.getElementById('btn-new-project').style.display = 'none';
         cliActions.render();
+    }
+
+    navigateGit() {
+        document.getElementById('nav-git').classList.add('active');
+        document.getElementById('nav-dashboard').classList.remove('active');
+        document.getElementById('nav-cli').classList.remove('active');
+        document.getElementById('btn-new-project').style.display = 'none';
+        gitActions.render();
     }
 
     navigateToProject(id) {
         document.getElementById('nav-dashboard').classList.remove('active');
         document.getElementById('nav-cli').classList.remove('active');
+        document.getElementById('nav-git').classList.remove('active');
         document.getElementById('btn-new-project').style.display = 'none';
         projectDetail.render(id);
     }
