@@ -62,3 +62,11 @@ http://localhost:3000
   - `db.js`: SQLite database initialization and models
   - `routes/`: API route handlers for projects, connections, paths, and tasks
 - `data/`: Contains the SQLite database file
+
+## Maintenance
+
+To update the Gemini CLI to the latest version in the future, run:
+
+```bash
+sudo npm install -g @google/gemini-cli@latest
+```
