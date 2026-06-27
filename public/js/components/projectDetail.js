@@ -152,9 +152,9 @@ class ProjectDetail {
                                 <button class="btn-icon" style="color: var(--danger-color)" onclick="projectDetail.removeTask(${t.id})" title="Delete Task"><i class='bx bx-trash'></i></button>
                             </td>
                         </tr>
-                        <tr id="task-content-${t.id}" style="display: none; background: var(--surface-light);">
+                        <tr id="task-content-${t.id}" style="display: none; background: rgba(255, 255, 255, 0.01);">
                             <td colspan="4" style="padding: 16px 24px; border-bottom: 1px solid var(--border-color);">
-                                <div id="task-content-inner-${t.id}" style="white-space: pre-wrap; font-family: monospace; color: var(--text-muted); font-size: 0.9rem; max-height: 400px; overflow-y: auto;">Loading...</div>
+                                <div id="task-content-inner-${t.id}" class="markdown-body" style="color: #dcdcdc; font-size: 0.95rem; max-height: 400px; overflow-y: auto; padding: 20px; background: #121218; border: 1px solid rgba(255,255,255,0.05); border-radius: 8px;">Loading...</div>
                             </td>
                         </tr>
                     `).join('')}
@@ -282,7 +282,11 @@ class ProjectDetail {
 
             try {
                 const response = await api.getTaskContent(id);
-                document.getElementById(`task-content-inner-${id}`).innerText = response.content;
+                if (typeof marked !== 'undefined') {
+                    document.getElementById(`task-content-inner-${id}`).innerHTML = marked.parse(response.content);
+                } else {
+                    document.getElementById(`task-content-inner-${id}`).innerText = response.content;
+                }
             } catch (err) {
                 document.getElementById(`task-content-inner-${id}`).innerText = 'Failed to load task content.';
                 app.showToast(err.message, 'error');
