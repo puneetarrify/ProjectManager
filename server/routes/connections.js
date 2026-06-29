@@ -12,7 +12,7 @@ router.post('/:id/open', (req, res) => {
         return res.status(404).json({ error: 'Connection not found' });
     }
     
-    const command = `sfdx force:org:open -u "${row.alias}"`;
+    const command = `sfdx force:org:open -u "${row.alias.trim()}"`;
     
     exec(command, (error) => {
         if (error) {
