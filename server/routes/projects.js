@@ -101,6 +101,58 @@ router.post('/:id/connections', (req, res) => {
     res.status(201).json({ id: info.lastInsertRowid });
 });
 
+// POST authenticate and add connection to project
+router.post('/:id/connections/authenticate', (req, res) => {
+    const { alias, username, org_type } = req.body;
+    if (!alias || !org_type) {
+        return res.status(400).json({ error: 'Alias and org_type are required' });
+    }
+
+    const instanceUrl = (org_type === 'Production' || org_type === 'DevHub') 
+        ? 'https://login.salesforce.com' 
+        : 'https://test.salesforce.com';
+
+    let command = `sf org login web -a "${alias.trim()}" -r "${instanceUrl}"`;
+    if (org_type === 'DevHub') {
+        command += ' -d';
+    }
+
+    const { exec } = require('child_process');
+    exec(command, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error running sf org login: ${error.message}`);
+            return res.status(500).json({ error: `Authentication failed: ${stderr || error.message}` });
+        }
+
+        const displayCommand = `sf org display -o "${alias.trim()}" --json`;
+        exec(displayCommand, (displayError, displayStdout, displayStderr) => {
+            let finalUsername = username;
+            let orgId = '';
+
+            if (!displayError && displayStdout) {
+                try {
+                    const details = JSON.parse(displayStdout);
+                    if (details.result) {
+                        finalUsername = details.result.username || username;
+                        orgId = details.result.id || details.result.orgId || '';
+                    }
+                } catch (e) {
+                    console.error('Failed to parse sf org display output:', e);
+                }
+            }
+
+            try {
+                const stmt = db.prepare('INSERT INTO sfdc_connections (project_id, alias, username, org_type, org_id) VALUES (?, ?, ?, ?, ?)');
+                const info = stmt.run(req.params.id, alias, finalUsername, org_type || 'Sandbox', orgId);
+                res.status(201).json({ id: info.lastInsertRowid, username: finalUsername, org_id: orgId });
+            } catch (dbError) {
+                console.error('Failed to insert connection into DB:', dbError);
+                res.status(500).json({ error: `Failed to save connection to database: ${dbError.message}` });
+            }
+        });
+    });
+});
+
 // POST add path to project
 router.post('/:id/paths', (req, res) => {
     const { path, label } = req.body;

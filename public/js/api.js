@@ -38,9 +38,11 @@ class ApiClient {
 
     // Sub-resources
     addConnection(projectId, data) { return this.request(`/projects/${projectId}/connections`, 'POST', data); }
+    authenticateConnection(projectId, data) { return this.request(`/projects/${projectId}/connections/authenticate`, 'POST', data); }
     updateConnection(id, data) { return this.request(`/connections/${id}`, 'PUT', data); }
     removeConnection(id) { return this.request(`/connections/${id}`, 'DELETE'); }
     openConnection(id) { return this.request(`/connections/${id}/open`, 'POST'); }
+    testConnection(id) { return this.request(`/connections/${id}/test`, 'POST'); }
 
     addPath(projectId, data) { return this.request(`/projects/${projectId}/paths`, 'POST', data); }
     updatePath(id, data) { return this.request(`/paths/${id}`, 'PUT', data); }

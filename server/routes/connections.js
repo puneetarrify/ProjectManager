@@ -23,6 +23,36 @@ router.post('/:id/open', (req, res) => {
     res.json({ success: true });
 });
 
+// POST test connection
+router.post('/:id/test', (req, res) => {
+    const stmt = db.prepare('SELECT alias FROM sfdc_connections WHERE id = ?');
+    const row = stmt.get(req.params.id);
+    
+    if (!row) {
+        return res.status(404).json({ error: 'Connection not found' });
+    }
+    
+    const command = `sf org display -o "${row.alias.trim()}" --json`;
+    
+    exec(command, (error, stdout, stderr) => {
+        if (error) {
+            console.error('Error testing SFDC connection:', error);
+            return res.status(400).json({ success: false, error: 'Connection configuration is not valid.' });
+        }
+        
+        try {
+            const details = JSON.parse(stdout);
+            if (details.status === 0) {
+                return res.json({ success: true, message: 'Connection configuration is valid.' });
+            } else {
+                return res.status(400).json({ success: false, error: 'Connection configuration is not valid.' });
+            }
+        } catch (e) {
+            return res.status(400).json({ success: false, error: 'Connection configuration is not valid.' });
+        }
+    });
+});
+
 // PUT update connection
 router.put('/:id', (req, res) => {
     const { alias, username, org_type } = req.body;

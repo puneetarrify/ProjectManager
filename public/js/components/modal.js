@@ -120,6 +120,77 @@ class ModalManager {
         });
     }
 
+    showNewConnectionForm(onSubmit) {
+        const html = `
+            <h2 style="margin-bottom: 24px;">New Salesforce Connection</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; line-height: 1.5;">
+                This will authenticate a new Salesforce org using the <code>sf</code> CLI. 
+                A browser window will open automatically for you to log in.
+            </p>
+            <form id="new-conn-form">
+                <div class="form-group">
+                    <label>Alias</label>
+                    <input type="text" id="new-conn-alias" class="form-control" placeholder="e.g., my-dev-org" required>
+                </div>
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="new-conn-user" class="form-control" placeholder="e.g., user@domain.com">
+                </div>
+                <div class="form-group">
+                    <label>Org Type</label>
+                    <select id="new-conn-type" class="form-control">
+                        <option value="Sandbox">Sandbox</option>
+                        <option value="Production">Production</option>
+                        <option value="DevHub">DevHub</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 32px;">
+                    <button type="button" class="btn btn-cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class='bx bx-navigation'></i> Proceed
+                    </button>
+                </div>
+            </form>
+        `;
+        this.open(html);
+        document.getElementById('new-conn-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const alias = document.getElementById('new-conn-alias').value;
+            const username = document.getElementById('new-conn-user').value;
+            const org_type = document.getElementById('new-conn-type').value;
+            
+            this.showAuthLoading(alias);
+            onSubmit({ alias, username, org_type });
+        });
+    }
+
+    showAuthLoading(alias) {
+        const html = `
+            <div style="text-align: center; padding: 40px 20px;">
+                <div class="spinner" style="width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 24px auto;"></div>
+                <h3 style="margin-bottom: 12px; font-size: 1.25rem;">Authenticating Org...</h3>
+                <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; max-width: 320px; margin: 0 auto;">
+                    We are launching the browser for <strong>${alias}</strong>. Please log in and approve the Salesforce CLI access.
+                </p>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 24px; font-style: italic;">
+                    This modal will close automatically once authentication is successful.
+                </p>
+            </div>
+        `;
+        this.container.innerHTML = html;
+        
+        if (!document.getElementById('spinner-style')) {
+            const style = document.createElement('style');
+            style.id = 'spinner-style';
+            style.innerHTML = `
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+
     showPathForm(path = null, onSubmit) {
         const isEdit = !!path;
         const html = `

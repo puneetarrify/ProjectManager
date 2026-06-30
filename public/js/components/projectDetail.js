@@ -46,7 +46,10 @@ class ProjectDetail {
                     <div class="glass-panel" style="padding: 24px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 24px;">
                             <h3>SFDC Connections (${p.connections.length})</h3>
-                            <button class="btn btn-primary" onclick="projectDetail.addConnection()"><i class='bx bx-plus'></i> Add Connection</button>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn" style="background: rgba(255, 255, 255, 0.08); color: var(--text-main);" onclick="projectDetail.newConnection()"><i class='bx bx-cloud-lightning'></i> New Connection</button>
+                                <button class="btn btn-primary" onclick="projectDetail.addConnection()"><i class='bx bx-plus'></i> Add Connection</button>
+                            </div>
                         </div>
                         ${this.renderConnections(p.connections)}
                     </div>
@@ -97,6 +100,7 @@ class ProjectDetail {
                             <td style="display: flex; gap: 8px;">
                                 <button class="btn btn-icon" style="color: var(--primary-color)" onclick="projectDetail.editConnection(${c.id})" title="Edit Connection"><i class='bx bx-edit'></i></button>
                                 <button class="btn btn-icon" style="color: var(--primary-color)" onclick="projectDetail.openConnection(${c.id})" title="Open in Browser"><i class='bx bx-link-external'></i> Open</button>
+                                <button class="btn btn-icon" style="color: var(--primary-color)" onclick="projectDetail.testConnection(${c.id}, this)" title="Test Connection"><i class='bx bx-check-shield'></i> Test</button>
                                 <button class="btn-icon" style="color: var(--danger-color)" onclick="projectDetail.removeConnection(${c.id})"><i class='bx bx-trash'></i></button>
                             </td>
                         </tr>
@@ -199,6 +203,21 @@ class ProjectDetail {
                 app.showToast('Connection added');
                 this.render(this.currentProject.id);
             } catch (err) { app.showToast(err.message, 'error'); }
+        });
+    }
+
+    newConnection() {
+        modals.showNewConnectionForm(async (data) => {
+            try {
+                const result = await api.authenticateConnection(this.currentProject.id, data);
+                modals.close();
+                app.showToast(`Successfully authenticated and added connection for ${result.username || data.alias}`);
+                this.render(this.currentProject.id);
+            } catch (err) {
+                app.showToast(err.message, 'error');
+                // Re-open the form so they don't lose their input
+                this.newConnection();
+            }
         });
     }
 
@@ -324,6 +343,26 @@ class ProjectDetail {
             app.showToast('Opening SFDC connection in browser...', 'success');
         } catch (err) {
             app.showToast(err.message, 'error');
+        }
+    }
+
+    async testConnection(id, btn) {
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<i class='bx bx-loader-alt bx-spin'></i> Testing...`;
+        
+        try {
+            const result = await api.testConnection(id);
+            if (result.success) {
+                app.showToast('Success!, Connection configuration is valid.', 'success');
+            } else {
+                app.showToast('Failed!, Connection configuration is not valid.', 'error');
+            }
+        } catch (err) {
+            app.showToast('Failed!, Connection configuration is not valid.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
         }
     }
 
