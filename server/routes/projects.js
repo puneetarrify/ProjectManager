@@ -31,6 +31,7 @@ router.get('/:id', (req, res) => {
 
     const connectionsStmt = db.prepare('SELECT * FROM sfdc_connections WHERE project_id = ?');
     const pathsStmt = db.prepare('SELECT * FROM local_paths WHERE project_id = ?');
+    const credentialsStmt = db.prepare('SELECT * FROM project_credentials WHERE project_id = ? ORDER BY created_at DESC');
     
     let tasksStmt;
     if (req.query.showAll === 'true') {
@@ -43,7 +44,8 @@ router.get('/:id', (req, res) => {
         ...project,
         connections: connectionsStmt.all(projectId),
         paths: pathsStmt.all(projectId),
-        tasks: tasksStmt.all(projectId)
+        tasks: tasksStmt.all(projectId),
+        credentials: credentialsStmt.all(projectId)
     });
 });
 
@@ -161,6 +163,18 @@ router.post('/:id/paths', (req, res) => {
     res.status(201).json({ id: info.lastInsertRowid });
 });
 
+// POST add credentials to project
+router.post('/:id/credentials', (req, res) => {
+    const { label, username, password, security_token } = req.body;
+    try {
+        const stmt = db.prepare('INSERT INTO project_credentials (project_id, label, username, password, security_token) VALUES (?, ?, ?, ?, ?)');
+        const info = stmt.run(req.params.id, label || '', username || '', password || '', security_token || '');
+        res.status(201).json({ id: info.lastInsertRowid });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // POST add task to project
 router.post('/:id/tasks', (req, res) => {
     const { title, description, status, priority } = req.body;
@@ -187,9 +201,18 @@ router.post('/:id/tasks', (req, res) => {
     
     const connections = db.prepare('SELECT * FROM sfdc_connections WHERE project_id = ?').all(projectId);
     const localPaths = db.prepare('SELECT * FROM local_paths WHERE project_id = ?').all(projectId);
+    const credentials = db.prepare('SELECT * FROM project_credentials WHERE project_id = ?').all(projectId);
     
     let taskContent = `# Task Context\n\n## Task Overview\n**Title:** ${title}\n**Description:** ${description}\n**Priority:** ${priority || 'Medium'}\n**Status:** ${status || 'To Do'}\n\n`;
     taskContent += `## Project Context\n**Project Name:** ${project.name}\n**Description:** ${project.description}\n\n`;
+    
+    if (credentials.length > 0) {
+        taskContent += `## SFDC Credentials\n`;
+        credentials.forEach(c => {
+            taskContent += `- **Label:** ${c.label} | **Username:** ${c.username} | **Password:** ${c.password} | **Security Token:** ${c.security_token}\n`;
+        });
+        taskContent += `\n`;
+    }
     
     let contextContent = taskContent;
     
@@ -258,7 +281,17 @@ router.post('/:id/context/refresh', (req, res) => {
         }
     }
     
+    const credentials = db.prepare('SELECT * FROM project_credentials WHERE project_id = ?').all(projectId);
+
     let contextContent = `# Project Context\n\n**Project Name:** ${project.name}\n**Description:** ${project.description}\n\n`;
+    
+    if (credentials.length > 0) {
+        contextContent += `## SFDC Credentials\n`;
+        credentials.forEach(c => {
+            contextContent += `- **Label:** ${c.label} | **Username:** ${c.username} | **Password:** ${c.password} | **Security Token:** ${c.security_token}\n`;
+        });
+        contextContent += `\n`;
+    }
     
     contextContent += `## SFDC Connections\n`;
     connections.forEach(c => {

@@ -15,6 +15,9 @@ function initDb() {
         name TEXT NOT NULL UNIQUE,
         description TEXT DEFAULT '',
         status TEXT DEFAULT 'Active' CHECK(status IN ('Active', 'On Hold', 'Completed', 'Archived')),
+        sfdc_username TEXT DEFAULT '',
+        sfdc_password TEXT DEFAULT '',
+        sfdc_security_token TEXT DEFAULT '',
         created_at TEXT DEFAULT (datetime('now', 'localtime')),
         updated_at TEXT DEFAULT (datetime('now', 'localtime')),
         last_visited_at TEXT DEFAULT (datetime('now', 'localtime'))
@@ -27,6 +30,18 @@ function initDb() {
   } catch (err) {
       // Ignore column already exists error
   }
+
+  try {
+      db.exec("ALTER TABLE projects ADD COLUMN sfdc_username TEXT DEFAULT '';");
+  } catch (err) {}
+
+  try {
+      db.exec("ALTER TABLE projects ADD COLUMN sfdc_password TEXT DEFAULT '';");
+  } catch (err) {}
+
+  try {
+      db.exec("ALTER TABLE projects ADD COLUMN sfdc_security_token TEXT DEFAULT '';");
+  } catch (err) {}
   
   db.exec(`
 
@@ -60,6 +75,26 @@ function initDb() {
         created_at TEXT DEFAULT (datetime('now', 'localtime')),
         updated_at TEXT DEFAULT (datetime('now', 'localtime')),
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS project_credentials (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL,
+        label TEXT DEFAULT '',
+        username TEXT DEFAULT '',
+        password TEXT DEFAULT '',
+        security_token TEXT DEFAULT '',
+        created_at TEXT DEFAULT (datetime('now', 'localtime')),
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS global_credentials (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        label TEXT NOT NULL,
+        username TEXT DEFAULT '',
+        password TEXT DEFAULT '',
+        security_token TEXT DEFAULT '',
+        created_at TEXT DEFAULT (datetime('now', 'localtime'))
     );
   `);
   console.log('Database initialized successfully.');

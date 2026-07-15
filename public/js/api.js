@@ -49,6 +49,15 @@ class ApiClient {
     removePath(id) { return this.request(`/paths/${id}`, 'DELETE'); }
     openPath(id, ide) { return this.request(`/paths/${id}/open`, 'POST', { ide }); }
 
+    addCredential(projectId, data) { return this.request(`/projects/${projectId}/credentials`, 'POST', data); }
+    updateCredential(id, data) { return this.request(`/credentials/${id}`, 'PUT', data); }
+    removeCredential(id) { return this.request(`/credentials/${id}`, 'DELETE'); }
+
+    getGlobalCredentials() { return this.request('/global-credentials'); }
+    addGlobalCredential(data) { return this.request('/global-credentials', 'POST', data); }
+    updateGlobalCredential(id, data) { return this.request(`/global-credentials/${id}`, 'PUT', data); }
+    removeGlobalCredential(id) { return this.request(`/global-credentials/${id}`, 'DELETE'); }
+
     addTask(projectId, data) { return this.request(`/projects/${projectId}/tasks`, 'POST', data); }
     updateTask(id, data) { return this.request(`/tasks/${id}`, 'PUT', data); }
     removeTask(id) { return this.request(`/tasks/${id}`, 'DELETE'); }

@@ -6,6 +6,8 @@ const projectRoutes = require('./routes/projects');
 const connectionRoutes = require('./routes/connections');
 const pathRoutes = require('./routes/paths');
 const taskRoutes = require('./routes/tasks');
+const credentialRoutes = require('./routes/credentials');
+const globalCredentialRoutes = require('./routes/globalCredentials');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,6 +22,8 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/connections', connectionRoutes);
 app.use('/api/paths', pathRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/credentials', credentialRoutes);
+app.use('/api/global-credentials', globalCredentialRoutes);
 
 // Serve Frontend fallback
 app.use((req, res) => {

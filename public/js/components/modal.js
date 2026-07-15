@@ -263,6 +263,55 @@ class ModalManager {
             });
         });
     }
+
+    showCredentialForm(credential = null, isGlobal = false, onSubmit) {
+        if (typeof isGlobal === 'function') {
+            onSubmit = isGlobal;
+            isGlobal = false;
+        }
+        const isEdit = !!credential;
+        const html = `
+            <h2 style="margin-bottom: 24px;">${isEdit ? 'Edit' : 'Add'} Credentials</h2>
+            <form id="cred-form">
+                <div class="form-group">
+                    <label>Label</label>
+                    <input type="text" id="cred-label" class="form-control" value="${credential?.label || ''}" placeholder="e.g., Sandbox Admin" required>
+                </div>
+                <div class="form-group">
+                    <label>${isGlobal ? 'Username' : 'SFDC Username'}</label>
+                    <input type="text" id="cred-username" class="form-control" value="${credential?.username || ''}" placeholder="e.g., user@domain.com" required>
+                </div>
+                <div class="form-group">
+                    <label>${isGlobal ? 'Password' : 'SFDC Password'}</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="password" id="cred-password" class="form-control" value="${credential?.password || ''}" placeholder="e.g., secure_password123" style="flex: 1;">
+                        <button type="button" class="btn-icon" onclick="const input = document.getElementById('cred-password'); input.type = input.type === 'password' ? 'text' : 'password';" style="padding: 12px;" title="Show/Hide Password"><i class='bx bx-show'></i></button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>${isGlobal ? 'Security Token' : 'SFDC Security Token'}</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="password" id="cred-security-token" class="form-control" value="${credential?.security_token || ''}" placeholder="e.g., hf9218Hf82947194hfa" style="flex: 1;">
+                        <button type="button" class="btn-icon" onclick="const input = document.getElementById('cred-security-token'); input.type = input.type === 'password' ? 'text' : 'password';" style="padding: 12px;" title="Show/Hide Security Token"><i class='bx bx-show'></i></button>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 32px;">
+                    <button type="button" class="btn btn-cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary">${isEdit ? 'Save Changes' : 'Save Credentials'}</button>
+                </div>
+            </form>
+        `;
+        this.open(html);
+        document.getElementById('cred-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            onSubmit({
+                label: document.getElementById('cred-label').value,
+                username: document.getElementById('cred-username').value,
+                password: document.getElementById('cred-password').value,
+                security_token: document.getElementById('cred-security-token').value
+            });
+        });
+    }
 }
 
 const modals = new ModalManager();

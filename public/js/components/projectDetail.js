@@ -27,7 +27,7 @@ class ProjectDetail {
             let html = `
                 <div class="glass-panel" style="padding: 32px; margin-bottom: 24px;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                        <div>
+                        <div style="flex: 1;">
                             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
                                 <h2 style="font-size: 2rem;">${p.name}</h2>
                                 <span class="badge ${this.getBadgeClass(p.status)}">${p.status}</span>
@@ -42,6 +42,15 @@ class ProjectDetail {
                 </div>
 
                 <div class="sections-container" style="display: flex; flex-direction: column; gap: 24px;">
+                    <!-- Credentials Section -->
+                    <div class="glass-panel" style="padding: 24px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 24px;">
+                            <h3>Credentials (${p.credentials?.length || 0})</h3>
+                            <button class="btn btn-primary" onclick="projectDetail.addCredential()"><i class='bx bx-plus'></i> Add Credentials</button>
+                        </div>
+                        ${this.renderCredentials(p.credentials)}
+                    </div>
+
                     <!-- Connections Section -->
                     <div class="glass-panel" style="padding: 24px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 24px;">
@@ -400,6 +409,126 @@ class ProjectDetail {
         try {
             await api.refreshProjectContext(this.currentProject.id);
             app.showToast('Project context refreshed successfully', 'success');
+        } catch (err) {
+            app.showToast(err.message, 'error');
+        }
+    }
+
+    toggleCredential(id) {
+        const input = document.getElementById(id);
+        const icon = document.getElementById(`${id}-icon`);
+        if (input && icon) {
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('bx-show', 'bx-hide');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('bx-hide', 'bx-show');
+            }
+        }
+    }
+
+    async copyText(text) {
+        try {
+            await navigator.clipboard.writeText(text);
+            app.showToast('Copied to clipboard!', 'success');
+        } catch (err) {
+            app.showToast('Failed to copy to clipboard', 'error');
+        }
+    }
+
+    renderCredentials(creds) {
+        if (!creds || creds.length === 0) {
+            return `<div style="text-align: center; color: var(--text-muted); padding: 24px 0;">No credentials mapped yet.</div>`;
+        }
+
+        return `
+            <div class="table-responsive">
+                <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th>Label</th>
+                            <th>Username</th>
+                            <th>Password</th>
+                            <th>Security Token</th>
+                            <th style="width: 100px; text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${creds.map(c => `
+                            <tr>
+                                <td><strong>${c.label}</strong></td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span style="font-family: monospace;">${c.username}</span>
+                                        <button class="btn-icon" onclick="projectDetail.copyText('${c.username}')" style="padding: 2px;" title="Copy Username"><i class='bx bx-copy'></i></button>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="password" readonly value="${c.password || ''}" class="cred-input" id="cred-pwd-${c.id}" style="width: 120px;">
+                                        ${c.password ? `
+                                            <button class="btn-icon" onclick="projectDetail.toggleCredential('cred-pwd-${c.id}')" style="padding: 2px;" title="Show/Hide Password"><i class='bx bx-show' id="cred-pwd-${c.id}-icon"></i></button>
+                                            <button class="btn-icon" onclick="projectDetail.copyText('${c.password}')" style="padding: 2px;" title="Copy Password"><i class='bx bx-copy'></i></button>
+                                        ` : '<span style="color: var(--text-muted);">-</span>'}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="password" readonly value="${c.security_token || ''}" class="cred-input" id="cred-tok-${c.id}" style="width: 150px;">
+                                        ${c.security_token ? `
+                                            <button class="btn-icon" onclick="projectDetail.toggleCredential('cred-tok-${c.id}')" style="padding: 2px;" title="Show/Hide Security Token"><i class='bx bx-show' id="cred-tok-${c.id}-icon"></i></button>
+                                            <button class="btn-icon" onclick="projectDetail.copyText('${c.security_token}')" style="padding: 2px;" title="Copy Security Token"><i class='bx bx-copy'></i></button>
+                                        ` : '<span style="color: var(--text-muted);">-</span>'}
+                                    </div>
+                                </td>
+                                <td style="text-align: right;">
+                                    <div style="display: flex; gap: 4px; justify-content: flex-end;">
+                                        <button class="btn-icon" onclick="projectDetail.editCredential(${c.id}, \`${c.label.replace(/'/g, "\\'")}\`, \`${c.username.replace(/'/g, "\\'")}\`, \`${c.password.replace(/'/g, "\\'")}\`, \`${c.security_token.replace(/'/g, "\\'")}\`)" title="Edit"><i class='bx bx-edit'></i></button>
+                                        <button class="btn-icon" style="color: var(--danger-color);" onclick="projectDetail.deleteCredential(${c.id})" title="Delete"><i class='bx bx-trash'></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    async addCredential() {
+        modals.showCredentialForm(null, async (data) => {
+            try {
+                await api.addCredential(this.currentProject.id, data);
+                app.showToast('Credentials added successfully', 'success');
+                modals.close();
+                this.load(this.currentProject.id);
+            } catch (err) {
+                app.showToast(err.message, 'error');
+            }
+        });
+    }
+
+    editCredential(id, label, username, password, security_token) {
+        const credential = { id, label, username, password, security_token };
+        modals.showCredentialForm(credential, async (data) => {
+            try {
+                await api.updateCredential(id, data);
+                app.showToast('Credentials updated successfully', 'success');
+                modals.close();
+                this.load(this.currentProject.id);
+            } catch (err) {
+                app.showToast(err.message, 'error');
+            }
+        });
+    }
+
+    async deleteCredential(id) {
+        if (!confirm('Are you sure you want to delete these credentials?')) return;
+        try {
+            await api.removeCredential(id);
+            app.showToast('Credentials deleted successfully', 'success');
+            this.load(this.currentProject.id);
         } catch (err) {
             app.showToast(err.message, 'error');
         }

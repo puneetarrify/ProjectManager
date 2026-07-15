@@ -422,3 +422,18 @@ select.form-control {
     margin-left: 0;
     margin-bottom: 1em;
 }
+
+/* Credentials Styling */
+.cred-input {
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    font-family: monospace;
+    font-size: 0.95rem;
+    padding: 0;
+    outline: none;
+}
+.cred-input:focus {
+    outline: none;
+    box-shadow: none;
+}
