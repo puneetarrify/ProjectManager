@@ -278,6 +278,10 @@ class ModalManager {
                     <input type="text" id="cred-label" class="form-control" value="${credential?.label || ''}" placeholder="e.g., Sandbox Admin" required>
                 </div>
                 <div class="form-group">
+                    <label>Login URL</label>
+                    <input type="url" id="cred-login-url" class="form-control" value="${credential?.login_url || ''}" placeholder="e.g., https://app.formassembly.com">
+                </div>
+                <div class="form-group">
                     <label>${isGlobal ? 'Username' : 'SFDC Username'}</label>
                     <input type="text" id="cred-username" class="form-control" value="${credential?.username || ''}" placeholder="e.g., user@domain.com" required>
                 </div>
@@ -306,6 +310,7 @@ class ModalManager {
             e.preventDefault();
             onSubmit({
                 label: document.getElementById('cred-label').value,
+                login_url: document.getElementById('cred-login-url').value,
                 username: document.getElementById('cred-username').value,
                 password: document.getElementById('cred-password').value,
                 security_token: document.getElementById('cred-security-token').value

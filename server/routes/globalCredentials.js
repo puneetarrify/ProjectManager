@@ -14,10 +14,10 @@ router.get('/', (req, res) => {
 
 // POST add new global credentials
 router.post('/', (req, res) => {
-    const { label, username, password, security_token } = req.body;
+    const { label, username, password, security_token, login_url } = req.body;
     try {
-        const stmt = db.prepare('INSERT INTO global_credentials (label, username, password, security_token) VALUES (?, ?, ?, ?)');
-        const info = stmt.run(label || '', username || '', password || '', security_token || '');
+        const stmt = db.prepare('INSERT INTO global_credentials (label, username, password, security_token, login_url) VALUES (?, ?, ?, ?, ?)');
+        const info = stmt.run(label || '', username || '', password || '', security_token || '', login_url || '');
         res.status(201).json({ id: info.lastInsertRowid });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -26,10 +26,10 @@ router.post('/', (req, res) => {
 
 // PUT update global credentials
 router.put('/:id', (req, res) => {
-    const { label, username, password, security_token } = req.body;
+    const { label, username, password, security_token, login_url } = req.body;
     try {
-        const stmt = db.prepare('UPDATE global_credentials SET label = ?, username = ?, password = ?, security_token = ? WHERE id = ?');
-        const info = stmt.run(label || '', username || '', password || '', security_token || '', req.params.id);
+        const stmt = db.prepare('UPDATE global_credentials SET label = ?, username = ?, password = ?, security_token = ?, login_url = ? WHERE id = ?');
+        const info = stmt.run(label || '', username || '', password || '', security_token || '', login_url || '', req.params.id);
         if (info.changes === 0) {
             return res.status(404).json({ error: 'Credentials not found' });
         }

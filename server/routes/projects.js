@@ -165,10 +165,10 @@ router.post('/:id/paths', (req, res) => {
 
 // POST add credentials to project
 router.post('/:id/credentials', (req, res) => {
-    const { label, username, password, security_token } = req.body;
+    const { label, username, password, security_token, login_url } = req.body;
     try {
-        const stmt = db.prepare('INSERT INTO project_credentials (project_id, label, username, password, security_token) VALUES (?, ?, ?, ?, ?)');
-        const info = stmt.run(req.params.id, label || '', username || '', password || '', security_token || '');
+        const stmt = db.prepare('INSERT INTO project_credentials (project_id, label, username, password, security_token, login_url) VALUES (?, ?, ?, ?, ?, ?)');
+        const info = stmt.run(req.params.id, label || '', username || '', password || '', security_token || '', login_url || '');
         res.status(201).json({ id: info.lastInsertRowid });
     } catch (err) {
         res.status(500).json({ error: err.message });

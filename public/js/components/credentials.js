@@ -1,5 +1,6 @@
 const credentialsView = {
     credentials: [],
+    sortDirection: 'asc',
 
     async render() {
         document.getElementById('page-title').textContent = 'Global Credentials';
@@ -7,9 +8,29 @@ const credentialsView = {
         
         try {
             this.credentials = await api.getGlobalCredentials();
+            this.sortCredentials();
             this.renderList(content);
         } catch (error) {
             window.app.showToast(error.message, 'error');
+        }
+    },
+
+    sortCredentials() {
+        this.credentials.sort((a, b) => {
+            const labelA = (a.label || '').toLowerCase();
+            const labelB = (b.label || '').toLowerCase();
+            if (labelA < labelB) return this.sortDirection === 'asc' ? -1 : 1;
+            if (labelA > labelB) return this.sortDirection === 'asc' ? 1 : -1;
+            return 0;
+        });
+    },
+
+    toggleSort() {
+        this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+        this.sortCredentials();
+        const content = document.getElementById('app-content');
+        if (content) {
+            this.renderList(content);
         }
     },
 
@@ -18,7 +39,7 @@ const credentialsView = {
             <div class="glass-panel" style="padding: 24px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                     <div>
-                        <p style="color: var(--text-muted); margin: 0;">Store and manage global Salesforce org credentials or security tokens not tied to a single project.</p>
+                        <p style="color: var(--text-muted); margin: 0;">Store and manage global credentials or security tokens not tied to a single project.</p>
                     </div>
                     <button class="btn btn-primary" onclick="credentialsView.addCredential()"><i class='bx bx-plus'></i> Add Credentials</button>
                 </div>
@@ -40,7 +61,10 @@ const credentialsView = {
                 <table class="data-table" style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr>
-                            <th>Label</th>
+                            <th onclick="credentialsView.toggleSort()" style="cursor: pointer; user-select: none;" title="Click to sort by Label">
+                                Label <i class='bx ${this.sortDirection === 'asc' ? 'bx-sort-a-z' : 'bx-sort-z-a'}' style="vertical-align: middle; margin-left: 4px;"></i>
+                            </th>
+                            <th>Login URL</th>
                             <th>Username</th>
                             <th>Password</th>
                             <th>Security Token</th>
@@ -51,6 +75,11 @@ const credentialsView = {
                         ${this.credentials.map(c => `
                             <tr>
                                 <td><strong>${c.label}</strong></td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        ${c.login_url ? `<a href="${c.login_url}" target="_blank" rel="noopener noreferrer" style="color: var(--primary-color); word-break: break-all;">${c.login_url}</a> <button class="btn-icon" onclick="credentialsView.copyText('${c.login_url.replace(/'/g, "\\'")}')" style="padding: 2px;" title="Copy Login URL"><i class='bx bx-copy'></i></button>` : '<span style="color: var(--text-muted);">-</span>'}
+                                    </div>
+                                </td>
                                 <td>
                                     <div style="display: flex; align-items: center; gap: 8px;">
                                         <span style="font-family: monospace;">${c.username || '-'}</span>
@@ -77,7 +106,7 @@ const credentialsView = {
                                 </td>
                                 <td style="text-align: right;">
                                     <div style="display: flex; gap: 4px; justify-content: flex-end;">
-                                        <button class="btn-icon" onclick="credentialsView.editCredential(${c.id}, \`${c.label.replace(/'/g, "\\'")}\`, \`${c.username.replace(/'/g, "\\'")}\`, \`${c.password.replace(/'/g, "\\'")}\`, \`${c.security_token.replace(/'/g, "\\'")}\`)" title="Edit"><i class='bx bx-edit'></i></button>
+                                        <button class="btn-icon" onclick="credentialsView.editCredential(${c.id}, \`${c.label.replace(/'/g, "\\'")}\`, \`${(c.login_url || '').replace(/'/g, "\\'")}\`, \`${(c.username || '').replace(/'/g, "\\'")}\`, \`${(c.password || '').replace(/'/g, "\\'")}\`, \`${(c.security_token || '').replace(/'/g, "\\'")}\`)" title="Edit"><i class='bx bx-edit'></i></button>
                                         <button class="btn-icon" style="color: var(--danger-color);" onclick="credentialsView.deleteCredential(${c.id})" title="Delete"><i class='bx bx-trash'></i></button>
                                     </div>
                                 </td>
@@ -127,8 +156,8 @@ const credentialsView = {
         });
     },
 
-    editCredential(id, label, username, password, security_token) {
-        const credential = { id, label, username, password, security_token };
+    editCredential(id, label, login_url, username, password, security_token) {
+        const credential = { id, label, login_url, username, password, security_token };
         modals.showCredentialForm(credential, true, async (data) => {
             try {
                 await api.updateGlobalCredential(id, data);

@@ -42,6 +42,14 @@ function initDb() {
   try {
       db.exec("ALTER TABLE projects ADD COLUMN sfdc_security_token TEXT DEFAULT '';");
   } catch (err) {}
+
+  try {
+      db.exec("ALTER TABLE global_credentials ADD COLUMN login_url TEXT DEFAULT '';");
+  } catch (err) {}
+
+  try {
+      db.exec("ALTER TABLE project_credentials ADD COLUMN login_url TEXT DEFAULT '';");
+  } catch (err) {}
   
   db.exec(`
 
@@ -84,6 +92,7 @@ function initDb() {
         username TEXT DEFAULT '',
         password TEXT DEFAULT '',
         security_token TEXT DEFAULT '',
+        login_url TEXT DEFAULT '',
         created_at TEXT DEFAULT (datetime('now', 'localtime')),
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
     );
@@ -94,6 +103,7 @@ function initDb() {
         username TEXT DEFAULT '',
         password TEXT DEFAULT '',
         security_token TEXT DEFAULT '',
+        login_url TEXT DEFAULT '',
         created_at TEXT DEFAULT (datetime('now', 'localtime'))
     );
   `);

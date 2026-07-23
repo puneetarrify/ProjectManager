@@ -448,6 +448,7 @@ class ProjectDetail {
                     <thead>
                         <tr>
                             <th>Label</th>
+                            <th>Login URL</th>
                             <th>Username</th>
                             <th>Password</th>
                             <th>Security Token</th>
@@ -460,8 +461,13 @@ class ProjectDetail {
                                 <td><strong>${c.label}</strong></td>
                                 <td>
                                     <div style="display: flex; align-items: center; gap: 8px;">
-                                        <span style="font-family: monospace;">${c.username}</span>
-                                        <button class="btn-icon" onclick="projectDetail.copyText('${c.username}')" style="padding: 2px;" title="Copy Username"><i class='bx bx-copy'></i></button>
+                                        ${c.login_url ? `<a href="${c.login_url}" target="_blank" rel="noopener noreferrer" style="color: var(--primary-color); word-break: break-all;">${c.login_url}</a> <button class="btn-icon" onclick="projectDetail.copyText('${c.login_url.replace(/'/g, "\\'")}')" style="padding: 2px;" title="Copy Login URL"><i class='bx bx-copy'></i></button>` : '<span style="color: var(--text-muted);">-</span>'}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span style="font-family: monospace;">${c.username || '-'}</span>
+                                        ${c.username ? `<button class="btn-icon" onclick="projectDetail.copyText('${c.username}')" style="padding: 2px;" title="Copy Username"><i class='bx bx-copy'></i></button>` : ''}
                                     </div>
                                 </td>
                                 <td>
@@ -484,7 +490,7 @@ class ProjectDetail {
                                 </td>
                                 <td style="text-align: right;">
                                     <div style="display: flex; gap: 4px; justify-content: flex-end;">
-                                        <button class="btn-icon" onclick="projectDetail.editCredential(${c.id}, \`${c.label.replace(/'/g, "\\'")}\`, \`${c.username.replace(/'/g, "\\'")}\`, \`${c.password.replace(/'/g, "\\'")}\`, \`${c.security_token.replace(/'/g, "\\'")}\`)" title="Edit"><i class='bx bx-edit'></i></button>
+                                        <button class="btn-icon" onclick="projectDetail.editCredential(${c.id}, \`${c.label.replace(/'/g, "\\'")}\`, \`${(c.login_url || '').replace(/'/g, "\\'")}\`, \`${(c.username || '').replace(/'/g, "\\'")}\`, \`${(c.password || '').replace(/'/g, "\\'")}\`, \`${(c.security_token || '').replace(/'/g, "\\'")}\`)" title="Edit"><i class='bx bx-edit'></i></button>
                                         <button class="btn-icon" style="color: var(--danger-color);" onclick="projectDetail.deleteCredential(${c.id})" title="Delete"><i class='bx bx-trash'></i></button>
                                     </div>
                                 </td>
@@ -509,8 +515,8 @@ class ProjectDetail {
         });
     }
 
-    editCredential(id, label, username, password, security_token) {
-        const credential = { id, label, username, password, security_token };
+    editCredential(id, label, login_url, username, password, security_token) {
+        const credential = { id, label, login_url, username, password, security_token };
         modals.showCredentialForm(credential, async (data) => {
             try {
                 await api.updateCredential(id, data);
