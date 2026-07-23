@@ -56,7 +56,9 @@ router.post('/:id/context/open', (req, res) => {
     }
     
     const { exec } = require('child_process');
-    const command = ide === 'antigravity' ? `antigravity "${task.context_path}"` : `idea "${task.context_path}"`;
+    const command = ide === 'antigravity'
+        ? `antigravity "${task.context_path}" 2>/dev/null || antigravity-ide "${task.context_path}"`
+        : `idea "${task.context_path}"`;
     
     exec(command, (error) => {
         if (error) {

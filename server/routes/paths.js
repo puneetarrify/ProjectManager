@@ -13,7 +13,9 @@ router.post('/:id/open', (req, res) => {
         return res.status(404).json({ error: 'Path not found' });
     }
     
-    const command = ide === 'antigravity' ? `antigravity "${row.path}"` : `idea "${row.path}"`;
+    const command = ide === 'antigravity'
+        ? `antigravity "${row.path}" 2>/dev/null || antigravity-ide "${row.path}"`
+        : `idea "${row.path}"`;
     
     exec(command, (error) => {
         if (error) {
