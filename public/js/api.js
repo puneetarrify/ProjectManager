@@ -39,6 +39,7 @@ class ApiClient {
     // Sub-resources
     addConnection(projectId, data) { return this.request(`/projects/${projectId}/connections`, 'POST', data); }
     authenticateConnection(projectId, data) { return this.request(`/projects/${projectId}/connections/authenticate`, 'POST', data); }
+    soapLoginConnection(data) { return this.request('/connections/soap-login', 'POST', data); }
     updateConnection(id, data) { return this.request(`/connections/${id}`, 'PUT', data); }
     removeConnection(id) { return this.request(`/connections/${id}`, 'DELETE'); }
     openConnection(id) { return this.request(`/connections/${id}/open`, 'POST'); }
@@ -64,6 +65,33 @@ class ApiClient {
     getTaskContent(id) { return this.request(`/tasks/${id}/content`); }
     openTaskContext(id, ide) { return this.request(`/tasks/${id}/context/open`, 'POST', { ide }); }
     refreshProjectContext(id) { return this.request(`/projects/${id}/context/refresh`, 'POST'); }
+
+    isSalesforceCredential(c) {
+        if (!c || !c.password || !c.password.trim()) return false;
+        
+        // Security token is strong indicator of Salesforce credential
+        if (c.security_token && c.security_token.trim().length > 0) return true;
+        
+        const loginUrl = (c.login_url || '').trim().toLowerCase();
+        if (loginUrl.length > 0) {
+            const sfDomains = ['salesforce.com', 'force.com', 'cloudforce.com', 'salesforce-setup.com', 'site.com'];
+            return sfDomains.some(domain => loginUrl.includes(domain));
+        }
+        
+        // If login_url is empty, check if label or username indicates non-Salesforce service
+        const text = ((c.label || '') + ' ' + (c.username || '')).toLowerCase();
+        const nonSfKeywords = [
+            'formassembly', 'tfaforms', 'canva', 'reddit', 'github', 'gitlab', 
+            'jira', 'confluence', 'aws', 'amazon', 'google', 'wordpress', 
+            'copado', 'chat gpt', 'chatgpt', 'openai', 'bitbucket', 'mysql', 'postgres'
+        ];
+        if (nonSfKeywords.some(kw => text.includes(kw)) || /\bfa\b/i.test(text) || /\bfa\s*[-_]/i.test(text)) {
+            return false;
+        }
+        
+        // Default for empty login_url without explicit non-SF service is Salesforce
+        return true;
+    }
 }
 
 const api = new ApiClient();

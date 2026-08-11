@@ -120,60 +120,310 @@ class ModalManager {
         });
     }
 
-    showNewConnectionForm(onSubmit) {
+    showSoapLoginForm({ credential = null, projectId = null, availableCredentials = [] } = {}, onSubmit) {
+        const cred = credential || {};
+        const sfCredentials = availableCredentials.filter(c => api.isSalesforceCredential(c));
         const html = `
-            <h2 style="margin-bottom: 24px;">New Salesforce Connection</h2>
+            <h2 style="margin-bottom: 16px;">SOAP Login (Salesforce CLI)</h2>
             <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; line-height: 1.5;">
-                This will authenticate a new Salesforce org using the <code>sf</code> CLI. 
-                A browser window will open automatically for you to log in.
+                Authenticate to Salesforce CLI via <strong>Partner SOAP Login API</strong> using credentials. No browser required.
             </p>
-            <form id="new-conn-form">
+            <form id="soap-login-form">
+                ${sfCredentials.length > 0 ? `
                 <div class="form-group">
-                    <label>Alias</label>
-                    <input type="text" id="new-conn-alias" class="form-control" placeholder="e.g., my-dev-org" required>
+                    <label>Autofill from Saved Credentials</label>
+                    <select id="soap-cred-select" class="form-control">
+                        <option value="">-- Select Saved Credential --</option>
+                        ${sfCredentials.map(c => `<option value="${c.id}" ${c.id === cred.id ? 'selected' : ''}>${c.label} (${c.username || 'No Username'})</option>`).join('')}
+                    </select>
+                </div>
+                ` : ''}
+                <div class="form-group">
+                    <label>Org Alias</label>
+                    <input type="text" id="soap-alias" class="form-control" value="${cred.label || ''}" placeholder="e.g., TIB_PROD" required>
                 </div>
                 <div class="form-group">
                     <label>Username</label>
-                    <input type="text" id="new-conn-user" class="form-control" placeholder="e.g., user@domain.com">
+                    <input type="text" id="soap-username" class="form-control" value="${cred.username || ''}" placeholder="e.g., user@domain.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="password" id="soap-password" class="form-control" value="${cred.password || ''}" placeholder="Salesforce Password" required style="flex: 1;">
+                        <button type="button" class="btn-icon" onclick="const input = document.getElementById('soap-password'); input.type = input.type === 'password' ? 'text' : 'password';" style="padding: 12px;" title="Show/Hide Password"><i class='bx bx-show'></i></button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Security Token</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="password" id="soap-security-token" class="form-control" value="${cred.security_token || ''}" placeholder="Security Token (if required)" style="flex: 1;">
+                        <button type="button" class="btn-icon" onclick="const input = document.getElementById('soap-security-token'); input.type = input.type === 'password' ? 'text' : 'password';" style="padding: 12px;" title="Show/Hide Security Token"><i class='bx bx-show'></i></button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Login URL</label>
+                    <input type="text" id="soap-login-url" class="form-control" value="${cred.login_url || 'https://login.salesforce.com/'}" placeholder="e.g., https://login.salesforce.com/">
                 </div>
                 <div class="form-group">
                     <label>Org Type</label>
-                    <select id="new-conn-type" class="form-control">
-                        <option value="Sandbox">Sandbox</option>
-                        <option value="Production">Production</option>
+                    <select id="soap-org-type" class="form-control">
+                        <option value="Production" ${cred.login_url && cred.login_url.includes('test.salesforce.com') ? '' : 'selected'}>Production</option>
+                        <option value="Sandbox" ${cred.login_url && cred.login_url.includes('test.salesforce.com') ? 'selected' : ''}>Sandbox</option>
                         <option value="DevHub">DevHub</option>
                     </select>
                 </div>
-                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 32px;">
+                <div class="form-group" style="margin-top: 12px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal;">
+                        <input type="checkbox" id="soap-set-default" checked> Set as Default Org in Salesforce CLI
+                    </label>
+                </div>
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 28px;">
                     <button type="button" class="btn btn-cancel">Cancel</button>
                     <button type="submit" class="btn btn-primary">
-                        <i class='bx bx-navigation'></i> Proceed
+                        <i class='bx bx-cloud-upload'></i> Login & Register CLI
                     </button>
                 </div>
             </form>
         `;
         this.open(html);
-        document.getElementById('new-conn-form').addEventListener('submit', (e) => {
+
+        if (sfCredentials.length > 0) {
+            const selectEl = document.getElementById('soap-cred-select');
+            if (selectEl) {
+                selectEl.addEventListener('change', (e) => {
+                    const selectedId = parseInt(e.target.value);
+                    const found = sfCredentials.find(c => c.id === selectedId);
+                    if (found) {
+                        document.getElementById('soap-alias').value = found.label || '';
+                        document.getElementById('soap-username').value = found.username || '';
+                        document.getElementById('soap-password').value = found.password || '';
+                        document.getElementById('soap-security-token').value = found.security_token || '';
+                        document.getElementById('soap-login-url').value = found.login_url || 'https://login.salesforce.com/';
+                        if (found.login_url && found.login_url.includes('test.salesforce.com')) {
+                            document.getElementById('soap-org-type').value = 'Sandbox';
+                        } else {
+                            document.getElementById('soap-org-type').value = 'Production';
+                        }
+                    }
+                });
+            }
+        }
+
+        document.getElementById('soap-login-form').addEventListener('submit', (e) => {
             e.preventDefault();
-            const alias = document.getElementById('new-conn-alias').value;
-            const username = document.getElementById('new-conn-user').value;
-            const org_type = document.getElementById('new-conn-type').value;
-            
-            this.showAuthLoading(alias);
-            onSubmit({ alias, username, org_type });
+            const alias = (document.getElementById('soap-alias').value || '').trim();
+            const username = (document.getElementById('soap-username').value || '').trim();
+            const password = (document.getElementById('soap-password').value || '').trim();
+            const security_token = (document.getElementById('soap-security-token').value || '').trim();
+            const login_url = (document.getElementById('soap-login-url').value || '').trim();
+            const org_type = (document.getElementById('soap-org-type').value || '').trim();
+            const set_default = document.getElementById('soap-set-default').checked;
+
+            this.showAuthLoading(alias, 'SOAP API Login');
+            onSubmit({
+                projectId,
+                credentialId: cred.id || null,
+                alias,
+                username,
+                password,
+                security_token,
+                login_url,
+                org_type,
+                set_default
+            });
         });
     }
 
-    showAuthLoading(alias) {
+    showNewConnectionForm({ availableCredentials = [] } = {}, onWebSubmit, onSoapSubmit) {
+        if (typeof availableCredentials === 'function') {
+            onSoapSubmit = onWebSubmit;
+            onWebSubmit = availableCredentials;
+            availableCredentials = [];
+        }
+
+        const sfCredentials = availableCredentials.filter(c => api.isSalesforceCredential(c));
+
+        const html = `
+            <h2 style="margin-bottom: 16px;">New Salesforce Connection</h2>
+            <div style="display: flex; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+                <button type="button" class="btn" id="tab-btn-soap" style="background: var(--primary-color); color: white;" onclick="modals.switchConnTab('soap')"><i class='bx bx-key'></i> SOAP Login (No Browser)</button>
+                <button type="button" class="btn" id="tab-btn-web" style="background: rgba(255,255,255,0.05); color: var(--text-muted);" onclick="modals.switchConnTab('web')"><i class='bx bx-window-open'></i> Browser OAuth</button>
+            </div>
+
+            <!-- SOAP Tab -->
+            <div id="conn-tab-soap">
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">
+                    Log into Salesforce CLI in background using Username, Password, and Security Token via SOAP API.
+                </p>
+                <form id="new-soap-conn-form">
+                    ${sfCredentials.length > 0 ? `
+                    <div class="form-group">
+                        <label>Autofill from Saved Credentials</label>
+                        <select id="nsoap-cred-select" class="form-control">
+                            <option value="">-- Select Saved Credential --</option>
+                            ${sfCredentials.map(c => `<option value="${c.id}">${c.label} (${c.username || 'No Username'})</option>`).join('')}
+                        </select>
+                    </div>
+                    ` : ''}
+                    <div class="form-group">
+                        <label>Alias</label>
+                        <input type="text" id="nsoap-alias" class="form-control" placeholder="e.g., TIB_PROD" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="nsoap-username" class="form-control" placeholder="e.g., ti@ctgclients.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="password" id="nsoap-password" class="form-control" placeholder="Salesforce Password" required style="flex: 1;">
+                            <button type="button" class="btn-icon" onclick="const input = document.getElementById('nsoap-password'); input.type = input.type === 'password' ? 'text' : 'password';" style="padding: 12px;" title="Show/Hide Password"><i class='bx bx-show'></i></button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Security Token</label>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="password" id="nsoap-token" class="form-control" placeholder="Security Token (if required)" style="flex: 1;">
+                            <button type="button" class="btn-icon" onclick="const input = document.getElementById('nsoap-token'); input.type = input.type === 'password' ? 'text' : 'password';" style="padding: 12px;" title="Show/Hide Security Token"><i class='bx bx-show'></i></button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Login URL</label>
+                        <input type="text" id="nsoap-login-url" class="form-control" value="https://login.salesforce.com/" placeholder="e.g., https://login.salesforce.com/">
+                    </div>
+                    <div class="form-group">
+                        <label>Org Type</label>
+                        <select id="nsoap-type" class="form-control">
+                            <option value="Production">Production</option>
+                            <option value="Sandbox">Sandbox</option>
+                            <option value="DevHub">DevHub</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-top: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal;">
+                            <input type="checkbox" id="nsoap-default" checked> Set as Default Org in Salesforce CLI
+                        </label>
+                    </div>
+                    <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                        <button type="button" class="btn btn-cancel">Cancel</button>
+                        <button type="submit" class="btn btn-primary"><i class='bx bx-cloud-upload'></i> Login via SOAP</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Web Tab -->
+            <div id="conn-tab-web" style="display: none;">
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">
+                    This will authenticate a new Salesforce org using <code>sf org login web</code>. A browser window will open automatically.
+                </p>
+                <form id="new-conn-form">
+                    <div class="form-group">
+                        <label>Alias</label>
+                        <input type="text" id="new-conn-alias" class="form-control" placeholder="e.g., my-dev-org">
+                    </div>
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="new-conn-user" class="form-control" placeholder="e.g., user@domain.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Org Type</label>
+                        <select id="new-conn-type" class="form-control">
+                            <option value="Sandbox">Sandbox</option>
+                            <option value="Production">Production</option>
+                            <option value="DevHub">DevHub</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                        <button type="button" class="btn btn-cancel">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class='bx bx-navigation'></i> Launch Browser Login
+                        </button>
+                    </div>
+                </form>
+            </div>
+        `;
+        this.open(html);
+
+        if (sfCredentials.length > 0) {
+            const selectEl = document.getElementById('nsoap-cred-select');
+            if (selectEl) {
+                selectEl.addEventListener('change', (e) => {
+                    const selectedId = parseInt(e.target.value);
+                    const found = sfCredentials.find(c => c.id === selectedId);
+                    if (found) {
+                        document.getElementById('nsoap-alias').value = found.label || '';
+                        document.getElementById('nsoap-username').value = found.username || '';
+                        document.getElementById('nsoap-password').value = found.password || '';
+                        document.getElementById('nsoap-token').value = found.security_token || '';
+                        document.getElementById('nsoap-login-url').value = found.login_url || 'https://login.salesforce.com/';
+                        if (found.login_url && found.login_url.includes('test.salesforce.com')) {
+                            document.getElementById('nsoap-type').value = 'Sandbox';
+                        } else {
+                            document.getElementById('nsoap-type').value = 'Production';
+                        }
+                    }
+                });
+            }
+        }
+
+        document.getElementById('new-soap-conn-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const alias = (document.getElementById('nsoap-alias').value || '').trim();
+            const username = (document.getElementById('nsoap-username').value || '').trim();
+            const password = (document.getElementById('nsoap-password').value || '').trim();
+            const security_token = (document.getElementById('nsoap-token').value || '').trim();
+            const login_url = (document.getElementById('nsoap-login-url').value || '').trim();
+            const org_type = (document.getElementById('nsoap-type').value || '').trim();
+            const set_default = document.getElementById('nsoap-default').checked;
+
+            this.showAuthLoading(alias, 'SOAP API Login');
+            onSoapSubmit({ alias, username, password, security_token, login_url, org_type, set_default });
+        });
+
+        document.getElementById('new-conn-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const alias = (document.getElementById('new-conn-alias').value || '').trim();
+            const username = (document.getElementById('new-conn-user').value || '').trim();
+            const org_type = (document.getElementById('new-conn-type').value || '').trim();
+            
+            this.showAuthLoading(alias, 'Browser OAuth');
+            onWebSubmit({ alias, username, org_type });
+        });
+    }
+
+    switchConnTab(tab) {
+        const soapTab = document.getElementById('conn-tab-soap');
+        const webTab = document.getElementById('conn-tab-web');
+        const soapBtn = document.getElementById('tab-btn-soap');
+        const webBtn = document.getElementById('tab-btn-web');
+
+        if (tab === 'soap') {
+            soapTab.style.display = 'block';
+            webTab.style.display = 'none';
+            soapBtn.style.background = 'var(--primary-color)';
+            soapBtn.style.color = 'white';
+            webBtn.style.background = 'rgba(255,255,255,0.05)';
+            webBtn.style.color = 'var(--text-muted)';
+        } else {
+            soapTab.style.display = 'none';
+            webTab.style.display = 'block';
+            webBtn.style.background = 'var(--primary-color)';
+            webBtn.style.color = 'white';
+            soapBtn.style.background = 'rgba(255,255,255,0.05)';
+            soapBtn.style.color = 'var(--text-muted)';
+        }
+    }
+
+    showAuthLoading(alias, mode = 'Authenticating') {
         const html = `
             <div style="text-align: center; padding: 40px 20px;">
                 <div class="spinner" style="width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 24px auto;"></div>
-                <h3 style="margin-bottom: 12px; font-size: 1.25rem;">Authenticating Org...</h3>
-                <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; max-width: 320px; margin: 0 auto;">
-                    We are launching the browser for <strong>${alias}</strong>. Please log in and approve the Salesforce CLI access.
+                <h3 style="margin-bottom: 12px; font-size: 1.25rem;">${mode}: ${alias}...</h3>
+                <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; max-width: 340px; margin: 0 auto;">
+                    ${mode.includes('SOAP') ? 'Executing Partner SOAP Login & registering access-token with Salesforce CLI...' : 'Launching browser for login approval...'}
                 </p>
                 <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 24px; font-style: italic;">
-                    This modal will close automatically once authentication is successful.
+                    This modal will close automatically once complete.
                 </p>
             </div>
         `;
@@ -214,8 +464,8 @@ class ModalManager {
         document.getElementById('path-form').addEventListener('submit', (e) => {
             e.preventDefault();
             onSubmit({
-                path: document.getElementById('path-val').value,
-                label: document.getElementById('path-label').value
+                path: (document.getElementById('path-val').value || '').trim(),
+                label: (document.getElementById('path-label').value || '').trim()
             });
         });
     }
@@ -257,7 +507,7 @@ class ModalManager {
         document.getElementById('task-form').addEventListener('submit', (e) => {
             e.preventDefault();
             onSubmit({
-                title: document.getElementById('task-title').value,
+                title: (document.getElementById('task-title').value || '').trim(),
                 status: document.getElementById('task-status').value,
                 priority: document.getElementById('task-priority').value
             });
@@ -309,11 +559,11 @@ class ModalManager {
         document.getElementById('cred-form').addEventListener('submit', (e) => {
             e.preventDefault();
             onSubmit({
-                label: document.getElementById('cred-label').value,
-                login_url: document.getElementById('cred-login-url').value,
-                username: document.getElementById('cred-username').value,
-                password: document.getElementById('cred-password').value,
-                security_token: document.getElementById('cred-security-token').value
+                label: (document.getElementById('cred-label').value || '').trim(),
+                login_url: (document.getElementById('cred-login-url').value || '').trim(),
+                username: (document.getElementById('cred-username').value || '').trim(),
+                password: (document.getElementById('cred-password').value || '').trim(),
+                security_token: (document.getElementById('cred-security-token').value || '').trim()
             });
         });
     }

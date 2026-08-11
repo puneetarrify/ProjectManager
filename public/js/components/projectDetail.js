@@ -216,18 +216,33 @@ class ProjectDetail {
     }
 
     newConnection() {
-        modals.showNewConnectionForm(async (data) => {
-            try {
-                const result = await api.authenticateConnection(this.currentProject.id, data);
-                modals.close();
-                app.showToast(`Successfully authenticated and added connection for ${result.username || data.alias}`);
-                this.render(this.currentProject.id);
-            } catch (err) {
-                app.showToast(err.message, 'error');
-                // Re-open the form so they don't lose their input
-                this.newConnection();
+        const availableCredentials = this.currentProject?.credentials || [];
+        modals.showNewConnectionForm(
+            { availableCredentials },
+            async (webData) => {
+                try {
+                    const result = await api.authenticateConnection(this.currentProject.id, webData);
+                    modals.close();
+                    app.showToast(`Successfully authenticated and added connection for ${result.username || webData.alias}`);
+                    this.render(this.currentProject.id);
+                } catch (err) {
+                    app.showToast(err.message, 'error');
+                    this.newConnection();
+                }
+            },
+            async (soapData) => {
+                try {
+                    soapData.projectId = this.currentProject.id;
+                    const result = await api.soapLoginConnection(soapData);
+                    modals.close();
+                    app.showToast(`Successfully authenticated ${result.alias} (${result.username}) via SOAP API`);
+                    this.render(this.currentProject.id);
+                } catch (err) {
+                    app.showToast(err.message, 'error');
+                    this.newConnection();
+                }
             }
-        });
+        );
     }
 
     editConnection(id) {
@@ -452,7 +467,7 @@ class ProjectDetail {
                             <th>Username</th>
                             <th>Password</th>
                             <th>Security Token</th>
-                            <th style="width: 100px; text-align: right;">Actions</th>
+                            <th style="min-width: 170px; text-align: right;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -488,8 +503,9 @@ class ProjectDetail {
                                         ` : '<span style="color: var(--text-muted);">-</span>'}
                                     </div>
                                 </td>
-                                <td style="text-align: right;">
-                                    <div style="display: flex; gap: 4px; justify-content: flex-end;">
+                                <td style="text-align: right; white-space: nowrap;">
+                                    <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center;">
+                                        ${api.isSalesforceCredential(c) ? `<button class="btn-cli-login" onclick="projectDetail.soapLoginFromCredential(${c.id})" title="Login to CLI via SOAP"><i class='bx bx-cloud-upload'></i> Login to CLI</button>` : ''}
                                         <button class="btn-icon" onclick="projectDetail.editCredential(${c.id}, \`${c.label.replace(/'/g, "\\'")}\`, \`${(c.login_url || '').replace(/'/g, "\\'")}\`, \`${(c.username || '').replace(/'/g, "\\'")}\`, \`${(c.password || '').replace(/'/g, "\\'")}\`, \`${(c.security_token || '').replace(/'/g, "\\'")}\`)" title="Edit"><i class='bx bx-edit'></i></button>
                                         <button class="btn-icon" style="color: var(--danger-color);" onclick="projectDetail.deleteCredential(${c.id})" title="Delete"><i class='bx bx-trash'></i></button>
                                     </div>
@@ -500,6 +516,22 @@ class ProjectDetail {
                 </table>
             </div>
         `;
+    }
+
+    soapLoginFromCredential(credId) {
+        const cred = this.currentProject.credentials.find(c => c.id === credId);
+        if (!cred) return;
+
+        modals.showSoapLoginForm({ credential: cred, projectId: this.currentProject.id }, async (data) => {
+            try {
+                const result = await api.soapLoginConnection(data);
+                modals.close();
+                app.showToast(`Successfully authenticated ${result.alias} (${result.username}) via SOAP API`);
+                this.render(this.currentProject.id);
+            } catch (err) {
+                app.showToast(err.message, 'error');
+            }
+        });
     }
 
     async addCredential() {

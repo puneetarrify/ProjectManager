@@ -106,6 +106,20 @@ function initDb() {
         login_url TEXT DEFAULT '',
         created_at TEXT DEFAULT (datetime('now', 'localtime'))
     );
+
+    UPDATE project_credentials SET 
+        username = TRIM(username), 
+        password = TRIM(password), 
+        security_token = TRIM(security_token), 
+        login_url = TRIM(login_url), 
+        label = TRIM(label);
+
+    UPDATE global_credentials SET 
+        username = TRIM(username), 
+        password = TRIM(password), 
+        security_token = TRIM(security_token), 
+        login_url = TRIM(login_url), 
+        label = TRIM(label);
   `);
   console.log('Database initialized successfully.');
 }

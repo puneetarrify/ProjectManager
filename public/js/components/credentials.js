@@ -68,7 +68,7 @@ const credentialsView = {
                             <th>Username</th>
                             <th>Password</th>
                             <th>Security Token</th>
-                            <th style="width: 100px; text-align: right;">Actions</th>
+                            <th style="min-width: 170px; text-align: right;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -104,8 +104,9 @@ const credentialsView = {
                                         ` : '<span style="color: var(--text-muted);">-</span>'}
                                     </div>
                                 </td>
-                                <td style="text-align: right;">
-                                    <div style="display: flex; gap: 4px; justify-content: flex-end;">
+                                <td style="text-align: right; white-space: nowrap;">
+                                    <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center;">
+                                        ${api.isSalesforceCredential(c) ? `<button class="btn-cli-login" onclick="credentialsView.soapLoginFromCredential(${c.id})" title="Login to CLI via SOAP"><i class='bx bx-cloud-upload'></i> Login to CLI</button>` : ''}
                                         <button class="btn-icon" onclick="credentialsView.editCredential(${c.id}, \`${c.label.replace(/'/g, "\\'")}\`, \`${(c.login_url || '').replace(/'/g, "\\'")}\`, \`${(c.username || '').replace(/'/g, "\\'")}\`, \`${(c.password || '').replace(/'/g, "\\'")}\`, \`${(c.security_token || '').replace(/'/g, "\\'")}\`)" title="Edit"><i class='bx bx-edit'></i></button>
                                         <button class="btn-icon" style="color: var(--danger-color);" onclick="credentialsView.deleteCredential(${c.id})" title="Delete"><i class='bx bx-trash'></i></button>
                                     </div>
@@ -163,6 +164,22 @@ const credentialsView = {
                 await api.updateGlobalCredential(id, data);
                 window.app.showToast('Global credentials updated successfully');
                 modals.close();
+                this.render();
+            } catch (err) {
+                window.app.showToast(err.message, 'error');
+            }
+        });
+    },
+
+    soapLoginFromCredential(credId) {
+        const cred = this.credentials.find(c => c.id === credId);
+        if (!cred) return;
+
+        modals.showSoapLoginForm({ credential: cred, availableCredentials: this.credentials }, async (data) => {
+            try {
+                const result = await api.soapLoginConnection(data);
+                modals.close();
+                window.app.showToast(`Successfully authenticated ${result.alias} (${result.username}) via SOAP API`);
                 this.render();
             } catch (err) {
                 window.app.showToast(err.message, 'error');

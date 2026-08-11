@@ -30,6 +30,13 @@ class App {
             this.navigateSalesforceRelease();
         });
 
+        if (document.getElementById('nav-image-converter')) {
+            document.getElementById('nav-image-converter').addEventListener('click', (e) => {
+                e.preventDefault();
+                this.navigateImageConverter();
+            });
+        }
+
         document.getElementById('btn-new-project').addEventListener('click', () => {
             modals.showProjectForm(null, async (data) => {
                 try {
@@ -51,6 +58,7 @@ class App {
         document.getElementById('nav-cli').classList.remove('active');
         document.getElementById('nav-git').classList.remove('active');
         if(document.getElementById('nav-sf-release')) document.getElementById('nav-sf-release').classList.remove('active');
+        if(document.getElementById('nav-image-converter')) document.getElementById('nav-image-converter').classList.remove('active');
         document.getElementById('btn-new-project').style.display = 'inline-flex';
         dashboard.render();
     }
@@ -61,6 +69,7 @@ class App {
         document.getElementById('nav-cli').classList.remove('active');
         document.getElementById('nav-git').classList.remove('active');
         if(document.getElementById('nav-sf-release')) document.getElementById('nav-sf-release').classList.remove('active');
+        if(document.getElementById('nav-image-converter')) document.getElementById('nav-image-converter').classList.remove('active');
         document.getElementById('btn-new-project').style.display = 'none';
         credentialsView.render();
     }
@@ -71,6 +80,7 @@ class App {
         document.getElementById('nav-credentials').classList.remove('active');
         document.getElementById('nav-git').classList.remove('active');
         if(document.getElementById('nav-sf-release')) document.getElementById('nav-sf-release').classList.remove('active');
+        if(document.getElementById('nav-image-converter')) document.getElementById('nav-image-converter').classList.remove('active');
         document.getElementById('btn-new-project').style.display = 'none';
         cliActions.render();
     }
@@ -81,6 +91,7 @@ class App {
         document.getElementById('nav-credentials').classList.remove('active');
         document.getElementById('nav-cli').classList.remove('active');
         if(document.getElementById('nav-sf-release')) document.getElementById('nav-sf-release').classList.remove('active');
+        if(document.getElementById('nav-image-converter')) document.getElementById('nav-image-converter').classList.remove('active');
         document.getElementById('btn-new-project').style.display = 'none';
         gitActions.render();
     }
@@ -91,8 +102,20 @@ class App {
         document.getElementById('nav-credentials').classList.remove('active');
         document.getElementById('nav-cli').classList.remove('active');
         document.getElementById('nav-git').classList.remove('active');
+        if(document.getElementById('nav-image-converter')) document.getElementById('nav-image-converter').classList.remove('active');
         document.getElementById('btn-new-project').style.display = 'none';
         salesforceRelease.render();
+    }
+
+    navigateImageConverter() {
+        if(document.getElementById('nav-image-converter')) document.getElementById('nav-image-converter').classList.add('active');
+        document.getElementById('nav-dashboard').classList.remove('active');
+        document.getElementById('nav-credentials').classList.remove('active');
+        document.getElementById('nav-cli').classList.remove('active');
+        document.getElementById('nav-git').classList.remove('active');
+        if(document.getElementById('nav-sf-release')) document.getElementById('nav-sf-release').classList.remove('active');
+        document.getElementById('btn-new-project').style.display = 'none';
+        imageConverter.render();
     }
 
     navigateToProject(id) {
@@ -101,6 +124,7 @@ class App {
         document.getElementById('nav-cli').classList.remove('active');
         document.getElementById('nav-git').classList.remove('active');
         if(document.getElementById('nav-sf-release')) document.getElementById('nav-sf-release').classList.remove('active');
+        if(document.getElementById('nav-image-converter')) document.getElementById('nav-image-converter').classList.remove('active');
         document.getElementById('btn-new-project').style.display = 'none';
         projectDetail.render(id);
     }

@@ -4,7 +4,11 @@ const db = require('../db');
 
 // PUT update specific credentials
 router.put('/:id', (req, res) => {
-    const { label, username, password, security_token, login_url } = req.body;
+    const label = (req.body.label || '').trim();
+    const username = (req.body.username || '').trim();
+    const password = (req.body.password || '').trim();
+    const security_token = (req.body.security_token || '').trim();
+    const login_url = (req.body.login_url || '').trim();
     
     try {
         const stmt = db.prepare(`
@@ -12,7 +16,7 @@ router.put('/:id', (req, res) => {
             SET label = ?, username = ?, password = ?, security_token = ?, login_url = ?
             WHERE id = ?
         `);
-        const info = stmt.run(label || '', username || '', password || '', security_token || '', login_url || '', req.params.id);
+        const info = stmt.run(label, username, password, security_token, login_url, req.params.id);
         
         if (info.changes === 0) {
             return res.status(404).json({ error: 'Credentials not found' });
