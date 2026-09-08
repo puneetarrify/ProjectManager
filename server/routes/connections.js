@@ -34,10 +34,15 @@ router.post('/:id/open', (req, res) => {
         if (error) {
             console.error('Error opening SFDC connection:', error || stderr);
             let message = 'Failed to open SFDC connection in browser.';
-            if ((stderr && stderr.includes('Bad_OAuth_Token')) || (stdout && stdout.includes('Bad_OAuth_Token'))) {
+            const combinedOutput = `${stdout || ''} ${stderr || ''}`;
+            const cleanErr = (stderr || '').replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '').trim();
+
+            if (combinedOutput.includes('Bad_OAuth_Token')) {
                 message = 'Browser open is restricted for SOAP access-token sessions (Bad_OAuth_Token). CLI development commands remain active.';
-            } else if (stderr) {
-                message = `Failed to open connection: ${stderr.trim()}`;
+            } else if (combinedOutput.includes('Session expired') || combinedOutput.includes('invalid')) {
+                message = `Session for org "${row.alias.trim()}" has expired or is invalid. Please re-authenticate the connection using SOAP Login or OAuth.`;
+            } else if (cleanErr) {
+                message = `Failed to open connection: ${cleanErr}`;
             }
             return res.status(400).json({ error: message });
         }

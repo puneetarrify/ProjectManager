@@ -19,7 +19,7 @@ const imageConverter = {
                                 Image Converter (WebP / JPEG / PNG)
                             </h2>
                             <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">
-                                Convert JPEG, JPG, PNG, GIF, BMP, TIFF, SVG, and HEIC images into WebP or JPEG format instantly.
+                                Convert GIF (animated & static), JPEG, JPG, PNG, BMP, TIFF, SVG, and HEIC images into WebP, JPEG, or PNG format instantly.
                             </p>
                         </div>
                         <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
@@ -58,14 +58,19 @@ const imageConverter = {
 
                 <!-- Drag and Drop Upload Zone -->
                 <div class="glass-panel drop-zone" id="drop-zone" style="padding: 40px 20px; text-align: center; border: 2px dashed var(--border-color); cursor: pointer; transition: var(--transition); margin-bottom: 24px; position: relative; border-radius: var(--radius-lg);">
-                    <input type="file" id="image-file-input" accept="image/*,.jpeg,.jpg,.png,.gif,.webp,.bmp,.tiff,.svg" multiple style="display: none;" onchange="imageConverter.handleFiles(this.files)">
+                    <input type="file" id="image-file-input" accept="image/*,image/gif,image/jpeg,image/png,image/webp,.jpeg,.jpg,.png,.gif,.webp,.bmp,.tiff,.svg" multiple style="display: none;" onchange="imageConverter.handleFiles(this.files)">
                     <div style="pointer-events: none;">
                         <i class='bx bx-cloud-upload' style="font-size: 3.5rem; color: var(--primary-color); margin-bottom: 12px;"></i>
-                        <h3 style="margin: 0 0 8px 0; font-weight: 600; font-size: 1.2rem;">Drag & Drop JPEG, PNG, or any images here</h3>
+                        <h3 style="margin: 0 0 8px 0; font-weight: 600; font-size: 1.2rem;">Drag & Drop GIF, JPEG, PNG, or any images here</h3>
                         <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0 0 12px 0;">or click to browse from your device</p>
-                        <span style="display: inline-block; background: rgba(108, 92, 231, 0.15); color: var(--primary-color); border: 1px dashed rgba(108, 92, 231, 0.4); padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 500;">
-                            <i class='bx bx-paste'></i> Tip: You can also paste images directly using Ctrl+V / Cmd+V
-                        </span>
+                        <div style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;">
+                            <span style="display: inline-block; background: rgba(108, 92, 231, 0.15); color: var(--primary-color); border: 1px dashed rgba(108, 92, 231, 0.4); padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 500;">
+                                <i class='bx bx-paste'></i> Tip: You can also paste images directly using Ctrl+V / Cmd+V
+                            </span>
+                            <span style="display: inline-block; background: rgba(0, 184, 148, 0.15); color: #00b894; border: 1px dashed rgba(0, 184, 148, 0.4); padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 500;">
+                                <i class='bx bxs-file-gif'></i> GIF to WebP (Animated & Static) Supported
+                            </span>
+                        </div>
                     </div>
                 </div>
 
@@ -175,7 +180,7 @@ const imageConverter = {
     async handleFiles(files) {
         const fileList = Array.from(files).filter(file => file.type.startsWith('image/') || /\.(png|jpe?g|jpg|gif|webp|bmp|tiff|svg|heic)$/i.test(file.name));
         if (fileList.length === 0) {
-            window.app?.showToast('Please select valid image files (JPEG, PNG, WebP, etc.).', 'error');
+            window.app?.showToast('Please select valid image files (GIF, JPEG, PNG, WebP, etc.).', 'error');
             return;
         }
 
@@ -187,30 +192,137 @@ const imageConverter = {
     processImageFile(file) {
         return new Promise((resolve) => {
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
+                const dataUrl = e.target.result;
+                const isGif = file.type === 'image/gif' || file.name.toLowerCase().endsWith('.gif');
+
+                // If file is GIF, use the backend conversion for full animated & static WebP support
+                if (isGif) {
+                    try {
+                        const converted = await this.convertGifViaBackend(dataUrl, file);
+                        if (converted) {
+                            resolve();
+                            return;
+                        }
+                    } catch (err) {
+                        console.warn('Backend conversion fallback to client canvas:', err);
+                    }
+                }
+
+                // Standard client-side canvas conversion (for images or fallback)
                 const img = new Image();
                 img.onload = () => {
-                    this.convertImage(img, file);
+                    this.convertImageClient(img, file, dataUrl);
                     resolve();
                 };
                 img.onerror = () => {
                     window.app?.showToast(`Failed to load image: ${file.name}`, 'error');
                     resolve();
                 };
-                img.src = e.target.result;
+                img.src = dataUrl;
             };
             reader.readAsDataURL(file);
         });
     },
 
-    convertImage(img, originalFile) {
+    async convertGifViaBackend(dataUrl, originalFile) {
+        try {
+            const res = await fetch('/api/image-converter/convert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    image: dataUrl,
+                    targetFormat: this.targetFormat,
+                    quality: this.quality,
+                    filename: originalFile.name
+                })
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || 'Server conversion failed');
+            }
+
+            const data = await res.json();
+            if (!data.success || !data.convertedBase64) {
+                throw new Error('Invalid conversion response');
+            }
+
+            // Convert base64 data URL to Blob
+            const base64Content = data.convertedBase64.split(',')[1];
+            const byteCharacters = atob(base64Content);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const convertedBlob = new Blob([byteArray], { type: data.targetMime || this.targetFormat });
+            const convertedUrl = URL.createObjectURL(convertedBlob);
+
+            const formatExt = this.targetFormat === 'image/webp' ? 'webp' : (this.targetFormat === 'image/jpeg' ? 'jpg' : 'png');
+            const formatLabel = this.targetFormat === 'image/webp' ? 'WebP' : (this.targetFormat === 'image/jpeg' ? 'JPEG' : 'PNG');
+
+            const originalSize = originalFile.size;
+            const convertedSize = convertedBlob.size;
+            const savings = Math.round(((originalSize - convertedSize) / originalSize) * 100);
+
+            const originalExtIndex = originalFile.name.lastIndexOf('.');
+            const baseName = originalExtIndex !== -1 ? originalFile.name.substring(0, originalExtIndex) : originalFile.name;
+            const convertedFileName = `${baseName}.${formatExt}`;
+
+            // Determine dimensions using data from server or image element
+            let width = data.width || 0;
+            let height = data.height || 0;
+            if (!width || !height) {
+                const dims = await new Promise((resolve) => {
+                    const tempImg = new Image();
+                    tempImg.onload = () => resolve({ width: tempImg.naturalWidth, height: tempImg.naturalHeight });
+                    tempImg.onerror = () => resolve({ width: 0, height: 0 });
+                    tempImg.src = convertedUrl;
+                });
+                width = dims.width;
+                height = dims.height;
+            }
+
+            const item = {
+                id: 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                originalName: originalFile.name,
+                convertedFileName: convertedFileName,
+                originalFormat: 'GIF',
+                targetFormatLabel: formatLabel,
+                targetMime: data.targetMime || this.targetFormat,
+                originalSize: originalSize,
+                convertedSize: convertedSize,
+                savings: savings,
+                width: width,
+                height: height,
+                pages: data.pages || 1,
+                isAnimated: data.isAnimated || false,
+                convertedBlob: convertedBlob,
+                convertedUrl: convertedUrl,
+                originalSrc: dataUrl,
+                originalDataUrl: dataUrl,
+                originalFile: originalFile,
+                isGif: true
+            };
+
+            this.convertedImages.unshift(item);
+            this.renderConvertedCards();
+            return true;
+        } catch (error) {
+            console.warn('Error in convertGifViaBackend:', error);
+            return false;
+        }
+    },
+
+    convertImageClient(img, originalFile, originalDataUrl) {
         const canvas = document.createElement('canvas');
         canvas.width = img.width;
         canvas.height = img.height;
         const ctx = canvas.getContext('2d');
         
-        // Fill white background for transparent PNG/GIF when converting to JPEG or WebP
-        if (this.targetFormat === 'image/jpeg' || this.targetFormat === 'image/webp') {
+        // Fill white background ONLY for JPEG (JPEG does not support transparency)
+        if (this.targetFormat === 'image/jpeg') {
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
@@ -253,8 +365,10 @@ const imageConverter = {
                 convertedBlob: convertedBlob,
                 convertedUrl: convertedUrl,
                 originalSrc: img.src,
+                originalDataUrl: originalDataUrl || img.src,
                 imgObj: img,
-                originalFile: originalFile
+                originalFile: originalFile,
+                isGif: origFormatClean === 'GIF'
             };
 
             this.convertedImages.unshift(item);
@@ -262,13 +376,24 @@ const imageConverter = {
         }, this.targetFormat, this.targetFormat === 'image/png' ? undefined : this.quality);
     },
 
-    reconvertAll() {
+    async reconvertAll() {
         const currentImages = [...this.convertedImages];
         this.convertedImages = [];
-        currentImages.forEach(item => {
+        for (const item of currentImages) {
             if (item.convertedUrl) URL.revokeObjectURL(item.convertedUrl);
-            this.convertImage(item.imgObj, item.originalFile);
-        });
+            const isGif = item.isGif || item.originalFormat === 'GIF' || item.originalFile?.type === 'image/gif' || item.originalFile?.name?.toLowerCase().endsWith('.gif');
+            if (isGif && item.originalDataUrl) {
+                const converted = await this.convertGifViaBackend(item.originalDataUrl, item.originalFile);
+                if (converted) continue;
+            }
+            if (item.imgObj) {
+                this.convertImageClient(item.imgObj, item.originalFile, item.originalDataUrl);
+            } else if (item.originalDataUrl) {
+                const img = new Image();
+                img.onload = () => this.convertImageClient(img, item.originalFile, item.originalDataUrl);
+                img.src = item.originalDataUrl;
+            }
+        }
     },
 
     formatBytes(bytes) {
@@ -311,6 +436,11 @@ const imageConverter = {
                         <div style="position: relative; width: 100%; height: 180px; background: rgba(0,0,0,0.4); border-radius: var(--radius-sm); overflow: hidden; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; cursor: pointer;"
                              onclick="imageConverter.showPreviewModal('${item.id}')" title="Click to expand preview">
                             <img src="${item.convertedUrl}" alt="${item.convertedFileName}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                            ${item.isGif ? `
+                                <span style="position: absolute; top: 8px; left: 8px; font-size: 0.72rem; font-weight: 700; padding: 3px 8px; border-radius: 10px; background: linear-gradient(135deg, #a29bfe, #6c5ce7); color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
+                                    <i class='bx bxs-file-gif'></i> ${item.pages > 1 ? `Animated (${item.pages}f)` : 'GIF'}
+                                </span>
+                            ` : ''}
                             <span style="position: absolute; top: 8px; right: 8px; font-size: 0.75rem; font-weight: 700; padding: 4px 8px; border-radius: 12px; ${savingsBadgeClass}">
                                 ${savingsText}
                             </span>
@@ -445,7 +575,7 @@ const imageConverter = {
 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; background: rgba(255,255,255,0.04); padding: 12px 16px; border-radius: var(--radius-md); font-size: 0.9rem;">
                     <div>
-                        <span style="color: var(--text-muted);">Dimensions:</span> <strong style="color: var(--text-main);">${item.width} x ${item.height} px</strong>
+                        <span style="color: var(--text-muted);">Dimensions:</span> <strong style="color: var(--text-main);">${item.width} x ${item.height} px${item.pages > 1 ? ` (${item.pages} frames)` : ''}</strong>
                     </div>
                     <div>
                         <span style="color: var(--text-muted);">Original (${item.originalFormat}):</span> <strong style="color: var(--text-main);">${this.formatBytes(item.originalSize)}</strong>
