@@ -1,136 +1,129 @@
 class App {
     constructor() {
+        this.navIds = [
+            'nav-dashboard',
+            'nav-credentials',
+            'nav-cli',
+            'nav-git',
+            'nav-sf-release',
+            'nav-image-converter',
+            'nav-html-viewer',
+            'nav-words-counter',
+            'nav-text-compare'
+        ];
         this.bindGlobalEvents();
         this.navigateHome();
     }
 
+    setActiveNav(activeId) {
+        this.navIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                if (id === activeId) {
+                    el.classList.add('active');
+                } else {
+                    el.classList.remove('active');
+                }
+            }
+        });
+
+        const btnNew = document.getElementById('btn-new-project');
+        if (btnNew) {
+            btnNew.style.display = (activeId === 'nav-dashboard') ? 'inline-flex' : 'none';
+        }
+    }
+
     bindGlobalEvents() {
-        document.getElementById('nav-dashboard').addEventListener('click', (e) => {
-            e.preventDefault();
-            this.navigateHome();
-        });
+        const bindClick = (id, handler) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    handler();
+                });
+            }
+        };
 
-        document.getElementById('nav-credentials').addEventListener('click', (e) => {
-            e.preventDefault();
-            this.navigateCredentials();
-        });
+        bindClick('nav-dashboard', () => this.navigateHome());
+        bindClick('nav-credentials', () => this.navigateCredentials());
+        bindClick('nav-cli', () => this.navigateCli());
+        bindClick('nav-git', () => this.navigateGit());
+        bindClick('nav-sf-release', () => this.navigateSalesforceRelease());
+        bindClick('nav-image-converter', () => this.navigateImageConverter());
+        bindClick('nav-html-viewer', () => this.navigateHtmlViewer());
+        bindClick('nav-words-counter', () => this.navigateWordsCounter());
+        bindClick('nav-text-compare', () => this.navigateTextCompare());
 
-        document.getElementById('nav-cli').addEventListener('click', (e) => {
-            e.preventDefault();
-            this.navigateCli();
-        });
-
-        document.getElementById('nav-git').addEventListener('click', (e) => {
-            e.preventDefault();
-            this.navigateGit();
-        });
-
-        document.getElementById('nav-sf-release').addEventListener('click', (e) => {
-            e.preventDefault();
-            this.navigateSalesforceRelease();
-        });
-
-        if (document.getElementById('nav-image-converter')) {
-            document.getElementById('nav-image-converter').addEventListener('click', (e) => {
-                e.preventDefault();
-                this.navigateImageConverter();
+        const btnNewProject = document.getElementById('btn-new-project');
+        if (btnNewProject) {
+            btnNewProject.addEventListener('click', () => {
+                modals.showProjectForm(null, async (data) => {
+                    try {
+                        await api.createProject(data);
+                        modals.close();
+                        this.showToast('Project created successfully!');
+                        this.navigateHome(); // Refresh
+                    } catch (error) {
+                        this.showToast(error.message, 'error');
+                    }
+                });
             });
         }
-
-        document.getElementById('btn-new-project').addEventListener('click', () => {
-            modals.showProjectForm(null, async (data) => {
-                try {
-                    await api.createProject(data);
-                    modals.close();
-                    this.showToast('Project created successfully!');
-                    this.navigateHome(); // Refresh
-                } catch (error) {
-                    this.showToast(error.message, 'error');
-                }
-            });
-        });
     }
 
     navigateHome() {
-        // Toggle UI states
-        document.getElementById('nav-dashboard').classList.add('active');
-        document.getElementById('nav-credentials').classList.remove('active');
-        document.getElementById('nav-cli').classList.remove('active');
-        document.getElementById('nav-git').classList.remove('active');
-        if(document.getElementById('nav-sf-release')) document.getElementById('nav-sf-release').classList.remove('active');
-        if(document.getElementById('nav-image-converter')) document.getElementById('nav-image-converter').classList.remove('active');
-        document.getElementById('btn-new-project').style.display = 'inline-flex';
+        this.setActiveNav('nav-dashboard');
         dashboard.render();
     }
 
     navigateCredentials() {
-        document.getElementById('nav-credentials').classList.add('active');
-        document.getElementById('nav-dashboard').classList.remove('active');
-        document.getElementById('nav-cli').classList.remove('active');
-        document.getElementById('nav-git').classList.remove('active');
-        if(document.getElementById('nav-sf-release')) document.getElementById('nav-sf-release').classList.remove('active');
-        if(document.getElementById('nav-image-converter')) document.getElementById('nav-image-converter').classList.remove('active');
-        document.getElementById('btn-new-project').style.display = 'none';
+        this.setActiveNav('nav-credentials');
         credentialsView.render();
     }
 
     navigateCli() {
-        document.getElementById('nav-cli').classList.add('active');
-        document.getElementById('nav-dashboard').classList.remove('active');
-        document.getElementById('nav-credentials').classList.remove('active');
-        document.getElementById('nav-git').classList.remove('active');
-        if(document.getElementById('nav-sf-release')) document.getElementById('nav-sf-release').classList.remove('active');
-        if(document.getElementById('nav-image-converter')) document.getElementById('nav-image-converter').classList.remove('active');
-        document.getElementById('btn-new-project').style.display = 'none';
+        this.setActiveNav('nav-cli');
         cliActions.render();
     }
 
     navigateGit() {
-        document.getElementById('nav-git').classList.add('active');
-        document.getElementById('nav-dashboard').classList.remove('active');
-        document.getElementById('nav-credentials').classList.remove('active');
-        document.getElementById('nav-cli').classList.remove('active');
-        if(document.getElementById('nav-sf-release')) document.getElementById('nav-sf-release').classList.remove('active');
-        if(document.getElementById('nav-image-converter')) document.getElementById('nav-image-converter').classList.remove('active');
-        document.getElementById('btn-new-project').style.display = 'none';
+        this.setActiveNav('nav-git');
         gitActions.render();
     }
 
     navigateSalesforceRelease() {
-        if(document.getElementById('nav-sf-release')) document.getElementById('nav-sf-release').classList.add('active');
-        document.getElementById('nav-dashboard').classList.remove('active');
-        document.getElementById('nav-credentials').classList.remove('active');
-        document.getElementById('nav-cli').classList.remove('active');
-        document.getElementById('nav-git').classList.remove('active');
-        if(document.getElementById('nav-image-converter')) document.getElementById('nav-image-converter').classList.remove('active');
-        document.getElementById('btn-new-project').style.display = 'none';
+        this.setActiveNav('nav-sf-release');
         salesforceRelease.render();
     }
 
     navigateImageConverter() {
-        if(document.getElementById('nav-image-converter')) document.getElementById('nav-image-converter').classList.add('active');
-        document.getElementById('nav-dashboard').classList.remove('active');
-        document.getElementById('nav-credentials').classList.remove('active');
-        document.getElementById('nav-cli').classList.remove('active');
-        document.getElementById('nav-git').classList.remove('active');
-        if(document.getElementById('nav-sf-release')) document.getElementById('nav-sf-release').classList.remove('active');
-        document.getElementById('btn-new-project').style.display = 'none';
+        this.setActiveNav('nav-image-converter');
         imageConverter.render();
     }
 
+    navigateHtmlViewer() {
+        this.setActiveNav('nav-html-viewer');
+        htmlViewer.render();
+    }
+
+    navigateWordsCounter() {
+        this.setActiveNav('nav-words-counter');
+        wordsCounter.render();
+    }
+
+    navigateTextCompare() {
+        this.setActiveNav('nav-text-compare');
+        textCompare.render();
+    }
+
     navigateToProject(id) {
-        document.getElementById('nav-dashboard').classList.remove('active');
-        document.getElementById('nav-credentials').classList.remove('active');
-        document.getElementById('nav-cli').classList.remove('active');
-        document.getElementById('nav-git').classList.remove('active');
-        if(document.getElementById('nav-sf-release')) document.getElementById('nav-sf-release').classList.remove('active');
-        if(document.getElementById('nav-image-converter')) document.getElementById('nav-image-converter').classList.remove('active');
-        document.getElementById('btn-new-project').style.display = 'none';
+        this.setActiveNav(null);
         projectDetail.render(id);
     }
 
     showToast(message, type = 'success') {
         const container = document.getElementById('toast-container');
+        if (!container) return;
         const toast = document.createElement('div');
         toast.className = 'toast';
         toast.style.borderLeft = `4px solid ${type === 'success' ? 'var(--success-color)' : 'var(--danger-color)'}`;
