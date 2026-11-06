@@ -108,7 +108,7 @@ class ProjectDetail {
                             <td><span class="badge">${c.org_type}</span></td>
                             <td style="display: flex; gap: 8px;">
                                 <button class="btn btn-icon" style="color: var(--primary-color)" onclick="projectDetail.editConnection(${c.id})" title="Edit Connection"><i class='bx bx-edit'></i></button>
-                                <button class="btn btn-icon" style="color: var(--primary-color)" onclick="projectDetail.openConnection(${c.id})" title="Open in Browser"><i class='bx bx-link-external'></i> Open</button>
+                                <button class="btn btn-icon" style="color: var(--primary-color)" onclick="projectDetail.openConnection(${c.id}, this)" title="Open in Browser"><i class='bx bx-link-external'></i> Open</button>
                                 <button class="btn btn-icon" style="color: var(--primary-color)" onclick="projectDetail.testConnection(${c.id}, this)" title="Test Connection"><i class='bx bx-check-shield'></i> Test</button>
                                 <button class="btn-icon" style="color: var(--danger-color)" onclick="projectDetail.removeConnection(${c.id})"><i class='bx bx-trash'></i></button>
                             </td>
@@ -361,12 +361,25 @@ class ProjectDetail {
         });
     }
 
-    async openConnection(id) {
+    async openConnection(id, btn) {
+        const originalHtml = btn ? btn.innerHTML : null;
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = `<i class='bx bx-loader-alt bx-spin'></i> Opening...`;
+        }
         try {
-            await api.openConnection(id);
+            const res = await api.openConnection(id);
+            if (res && res.url && res.launched === false) {
+                window.open(res.url, '_blank');
+            }
             app.showToast('Opening SFDC connection in browser...', 'success');
         } catch (err) {
             app.showToast(err.message, 'error');
+        } finally {
+            if (btn && originalHtml) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
         }
     }
 
